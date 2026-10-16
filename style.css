@@ -709,3 +709,105 @@ button { font: inherit; color: inherit; }
 }
 .ph-label .ph-heart { display: inline-flex; width: .9em; height: .9em; margin-top: .15em; }
 .ph-label .ph-heart svg { width: 100%; height: 100%; fill: var(--rose); opacity: .75; }
+
+/* ───────── 開頭提醒（打開聲音） ───────── */
+#gate {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(80% 60% at 50% 40%, #fff8f3 0%, rgba(255, 248, 243, 0) 70%),
+    linear-gradient(180deg, #fff6f0 0%, #ffecef 100%);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#gate[hidden] { display: none; }
+#gate:focus-visible { outline: none; }
+#gate:focus-visible .gate-btn { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--rose); }
+.gate-in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+  opacity: 0;
+}
+.gate-icon {
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 14px 30px -14px rgba(200, 90, 110, .55), inset 0 0 0 1px rgba(232, 150, 165, .22);
+}
+.gate-icon svg { width: 60%; height: 60%; overflow: visible; }
+.g-spk { fill: var(--rose); }
+.g-wave {
+  fill: none;
+  stroke: var(--rose);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  animation: gateWave 1.6s ease-in-out infinite;
+}
+.gw2 { animation-delay: .25s; }
+@keyframes gateWave { 0%, 100% { opacity: .25; } 45% { opacity: 1; } }
+.gate-hint {
+  margin: 0;
+  font-family: var(--f-round);
+  font-size: clamp(20px, 5.4vw, 26px);
+  letter-spacing: .08em;
+  color: var(--ink);
+}
+.gate-btn {
+  display: inline-block;
+  padding: 11px 26px;
+  border-radius: 999px;
+  background: var(--rose);
+  color: #fff;
+  font-size: 15px;
+  letter-spacing: .12em;
+  box-shadow: 0 10px 22px -10px rgba(200, 80, 105, .7);
+  animation: gatePulse 2s ease-in-out infinite;
+}
+@keyframes gatePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+/* ───────── 右上角聲音開關 ───────── */
+.sound-btn {
+  position: fixed;
+  z-index: 45;
+  top: calc(var(--sat) + max(12px, 2vh));
+  right: max(12px, 3vw);
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 6px 16px -8px rgba(200, 90, 110, .5), inset 0 0 0 1px rgba(232, 150, 165, .25);
+  cursor: pointer;
+  visibility: hidden;
+  opacity: 0;
+}
+.sound-btn:focus-visible { outline: 3px solid var(--rose); outline-offset: 2px; }
+.sound-btn svg { width: 20px; height: 20px; overflow: visible; }
+.sound-btn .spk { fill: var(--rose); }
+.sound-btn .wave, .sound-btn .mute {
+  fill: none;
+  stroke: var(--rose);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.sound-btn .wave { animation: gateWave 1.6s ease-in-out infinite; }
+.sound-btn .w2 { animation-delay: .25s; }
+.sound-btn .mute { display: none; }
+.sound-btn.muted .wave { display: none; }
+.sound-btn.muted .mute { display: inline; }
+.sound-btn.muted .spk { fill: var(--ink-soft); }

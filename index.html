@@ -142,6 +142,32 @@
     </button>
   </div>
 
+  <!-- 背景音樂 -->
+  <audio id="bgm" loop preload="auto" playsinline></audio>
+  <button class="sound-btn" id="soundBtn" type="button" aria-label="靜音">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path class="spk" d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z"/>
+      <path class="wave w1" d="M15.2 9.2a4 4 0 0 1 0 5.6"/>
+      <path class="wave w2" d="M17.8 6.8a7.4 7.4 0 0 1 0 10.4"/>
+      <path class="mute" d="M16 9.5l5 5M21 9.5l-5 5"/>
+    </svg>
+  </button>
+
+  <!-- 最開頭：提醒打開聲音（點一下才能讓 iPhone 播音樂） -->
+  <div id="gate" role="button" tabindex="0" aria-label="開始">
+    <div class="gate-in">
+      <div class="gate-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+          <path class="g-spk" d="M10 25h9l13-11v36L19 39h-9z"/>
+          <path class="g-wave gw1" d="M40 24a11 11 0 0 1 0 16"/>
+          <path class="g-wave gw2" d="M46 18a19 19 0 0 1 0 28"/>
+        </svg>
+      </div>
+      <p class="gate-hint" id="gateHint"></p>
+      <span class="gate-btn" id="gateBtn"></span>
+    </div>
+  </div>
+
   <!-- 照片燈箱 -->
   <div id="lb" aria-hidden="true" role="dialog" aria-modal="true" aria-label="照片">
     <div class="lb-backdrop" id="lbBackdrop"></div>

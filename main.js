@@ -808,6 +808,40 @@
   // 開發用：網址加上 ?debug 可以在 console 操作時間軸
   if (location.search.includes('debug')) window.__dbg = { get openTl() { return openTl; }, get tl() { return tl; }, state };
 
+  /* ───────── 背景音樂 ───────── */
+  const M = D.music || {};
+  const bgm = $('#bgm'), soundBtn = $('#soundBtn'), gate = $('#gate');
+  const hasMusic = !!M.file;
+  let userMuted = false, resumeOnShow = false;
+  if (hasMusic) bgm.src = encodeURI(M.file);
+  setText('#gateHint', M.soundHint);
+  setText('#gateBtn', M.start);
+
+  function playMusic() {
+    if (!hasMusic) return;
+    bgm.volume = 0;
+    const p = bgm.play();
+    if (p && p.catch) p.catch(() => {});
+    // 電腦上慢慢淡入；iPhone 不允許網頁改音量，會直接用手機音量播
+    gsap.to(bgm, { volume: clamp(0, 1, M.volume ?? 0.7), duration: 2.5, ease: 'sine.out' });
+  }
+  function setMuted(m) {
+    userMuted = m;
+    bgm.muted = m;
+    soundBtn.classList.toggle('muted', m);
+    soundBtn.setAttribute('aria-label', m ? '開啟聲音' : '靜音');
+    if (!m && bgm.paused) playMusic();
+  }
+  // 按聲音鈕不要被當成拆信手勢
+  soundBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  soundBtn.addEventListener('click', (e) => { e.stopPropagation(); setMuted(!userMuted); });
+  // 切到別的 App 時暫停，回來再接著播
+  document.addEventListener('visibilitychange', () => {
+    if (!hasMusic) return;
+    if (document.hidden) { resumeOnShow = !bgm.paused; bgm.pause(); }
+    else if (resumeOnShow && !userMuted) bgm.play().catch(() => {});
+  });
+
   /* ───────── 開始 ───────── */
   gsap.set('#bg', { opacity: 0 });
   gsap.set(scene, { y: -innerHeight * 1.1 });
@@ -816,7 +850,25 @@
     build();
     openTl = buildOpen();
     ambient();
-    intro();
+
+    if (!hasMusic) { gate.hidden = true; intro(); }
+    else {
+      // 先提醒打開聲音；點一下＝開始播音樂（iPhone 規定要使用者先點過）＋開始開場動畫
+      gsap.fromTo('.gate-in', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' });
+      let started = false;
+      const go = () => {
+        if (started) return;
+        started = true;
+        playMusic();
+        gsap.to('.gate-in', { scale: 0.92, opacity: 0, duration: 0.4, ease: 'power2.in' });
+        gsap.to(gate, { opacity: 0, duration: 0.6, delay: 0.15, ease: 'power1.inOut', onComplete: () => { gate.hidden = true; } });
+        gsap.to(soundBtn, { autoAlpha: 1, duration: 0.5, delay: 2.8 });
+        gsap.delayedCall(0.35, intro);
+      };
+      gate.addEventListener('click', go);
+      gate.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+      gate.focus({ preventScroll: true });
+    }
     // 中文字型是分段下載的，字型晚到導致信的長度改變時，重新量一次
     let lastPcH = pc.offsetHeight, fT;
     document.fonts.addEventListener('loadingdone', () => {
