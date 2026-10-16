@@ -79,7 +79,7 @@
       `<i class="tape"></i>` +
       `<div class="ph-img"><img src="photos/${esc(p.file)}" alt="${esc(p.title)}" draggable="false" decoding="async"` +
       ` style="object-position:${esc(p.focus || 'center')}"></div>` +
-      `<div class="ph-label"><span>${esc(p.title)}</span><small>${esc(p.date)}</small></div>`;
+      `<div class="ph-label"><span>${esc(p.title)}</span>${p.tag ? `<small>${esc(p.tag)}</small>` : `<small class="ph-heart" aria-hidden="true">${HEART}</small>`}</div>`;
     const img = el.querySelector('img');
     img.addEventListener('error', () => { img.parentElement.classList.add('noimg'); img.remove(); }, { once: true });
     scene.insertBefore(el, envFront);

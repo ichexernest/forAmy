@@ -707,3 +707,5 @@ button { font: inherit; color: inherit; }
   padding: var(--sat) 0 var(--sab) 0;
   pointer-events: none;
 }
+.ph-label .ph-heart { display: inline-flex; width: .9em; height: .9em; margin-top: .15em; }
+.ph-label .ph-heart svg { width: 100%; height: 100%; fill: var(--rose); opacity: .75; }
