@@ -1,0 +1,5 @@
+# 本機預覽設定，不需要放上網
+.claude/
+node_modules/
+.DS_Store
+Thumbs.db

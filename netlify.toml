@@ -1,0 +1,4 @@
+# 純靜態網站，不需要 build，直接發布整個資料夾
+[build]
+  publish = "."
+  command = ""

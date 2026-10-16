@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e5dcff"/><stop offset="1" stop-color="#ffd9e6"/></linearGradient></defs>
+  <rect width="800" height="800" fill="url(#g)"/>
+  <g fill="#fff" opacity=".85"><path d="M400 210l28 86h90l-73 53 28 86-73-53-73 53 28-86-73-53h90z"/><circle cx="250" cy="250" r="12"/><circle cx="560" cy="230" r="9"/><circle cx="590" cy="470" r="14"/></g>
+  <text x="400" y="650" text-anchor="middle" font-family="sans-serif" font-size="34" fill="#b9707e" opacity=".75" letter-spacing="4">PHOTO 04</text>
+</svg>

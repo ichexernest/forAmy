@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fff5ef">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="給妳的信">
+  <meta name="format-detection" content="telephone=no, date=no">
+  <title>給妳的一封信</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Huninn&family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="closed">
+
+  <!-- 封蠟共用的漸層與形狀 -->
+  <svg class="defs" width="0" height="0" aria-hidden="true">
+    <defs>
+      <radialGradient id="waxBody" cx="36%" cy="30%" r="78%">
+        <stop offset="0" stop-color="#e98a9c"/>
+        <stop offset=".5" stop-color="#cf5a73"/>
+        <stop offset="1" stop-color="#a83d56"/>
+      </radialGradient>
+      <radialGradient id="waxPress" cx="62%" cy="68%" r="72%">
+        <stop offset="0" stop-color="#cf6079"/>
+        <stop offset="1" stop-color="#b34760"/>
+      </radialGradient>
+      <clipPath id="waxClip" clipPathUnits="userSpaceOnUse">
+        <path d="M50 3.5C61 2.5 69 8 77.5 11 88 15 95.5 25 96.5 37.5 97.5 47 93.5 54 96.5 63.5 98.5 76 90 86 80 91 70 96 60.5 94 50 97 38 99.5 28 94.5 20 89.5 10 83 3.5 73 4 62 3.5 52 7 46 4 36 2 24 12 14 22 9.5 31 5 40 5 50 3.5Z"/>
+      </clipPath>
+    </defs>
+  </svg>
+
+  <!-- 背景 -->
+  <div id="bg" aria-hidden="true">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div id="bgWarm"></div>
+    <div id="floats"></div>
+    <div class="grain"></div>
+  </div>
+
+  <!-- 主場景：信封、信紙、照片都在這裡 -->
+  <div id="scene" aria-live="polite">
+    <div class="env env-shadow"></div>
+    <div class="env env-back"></div>
+
+    <div class="env env-flapwrap" id="flapWrap">
+      <div class="flap" id="flap">
+        <div class="flap-face flap-out" id="flapOut"></div>
+        <div class="flap-face flap-in" id="flapIn"></div>
+        <!-- 封蠟上半部：黏在蓋子上，跟著蓋子一起翻開 -->
+        <div class="seal-piece seal-top" id="sealTop"></div>
+      </div>
+    </div>
+
+    <div class="letter" id="letter">
+      <article class="paper real" id="paperReal">
+        <div class="pc-wrap" id="pcWrap"><div class="pc" id="pc"></div></div>
+        <i class="fade fade-t" id="fadeT"></i>
+        <i class="fade fade-b" id="fadeB"></i>
+      </article>
+      <div class="fold fold-top" id="foldTop" aria-hidden="true">
+        <div class="fold-clip" id="foldTopClip"></div>
+        <i class="crease" id="crease"></i>
+      </div>
+      <div class="fold fold-bot" id="foldBot" aria-hidden="true">
+        <div class="face face-front" id="faceFront">
+          <div class="fold-clip shift" id="foldBotClip"></div>
+          <i class="shade" id="shade"></i>
+        </div>
+        <div class="face face-back" id="faceBack">
+          <div class="cover">
+            <span class="cover-sticker"><svg viewBox="0 0 24 24"><path d="M12 20.6c-.3 0-.6-.1-.8-.3C6.4 16.2 3 13.2 3 9.4 3 6.9 5 5 7.4 5c1.8 0 3.2 1 4.6 2.6C13.4 6 14.8 5 16.6 5 19 5 21 6.9 21 9.4c0 3.8-3.4 6.8-8.2 10.9-.2.2-.5.3-.8.3z"/></svg></span>
+            <span class="cover-to" id="coverTo"></span>
+            <span class="cover-from" id="coverFrom"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 照片會被 JS 插在這裡（信封前片之前） -->
+
+    <div class="env env-front" id="envFront">
+      <svg viewBox="0 0 100 70" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="gFront" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fcdde1"/>
+            <stop offset="1" stop-color="#f5c0c9"/>
+          </linearGradient>
+        </defs>
+        <path d="M0 3 Q0 0 2.6 1.7 L47 35.4 Q50 37.6 53 35.4 L97.4 1.7 Q100 0 100 3 L100 66.5 Q100 70 96.5 70 L3.5 70 Q0 70 0 66.5 Z" fill="url(#gFront)"/>
+        <path d="M1.2 68.6 L45.6 39.4 M98.8 68.6 L54.4 39.4" stroke="#e9a7b3" stroke-opacity=".45" stroke-width="1.2" fill="none" vector-effect="non-scaling-stroke"/>
+        <path d="M1.2 69.4 L45.6 40.2 M98.8 69.4 L54.4 40.2" stroke="#fff" stroke-opacity=".6" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"/>
+      </svg>
+    </div>
+
+    <!-- 封蠟下半部：留在信封上；裂痕和蠟屑也在這層 -->
+    <div class="env env-sealwrap">
+      <div class="seal-piece seal-bot" id="sealBot"></div>
+      <svg class="seal-crack" id="sealCrack" viewBox="0 0 100 100" aria-hidden="true">
+        <polyline id="crackLine" pathLength="1" clip-path="url(#waxClip)"
+          points="0,66 7,69 14,65 22,71 31,66 39,70 47,64 56,69 63,66 71,72 79,67 86,70 93,65 100,67"/>
+      </svg>
+      <div class="seal-crumbs" id="sealCrumbs"></div>
+    </div>
+
+    <div class="trail" id="trail" aria-hidden="true"></div>
+  </div>
+
+  <!-- 開場 -->
+  <div id="intro" aria-hidden="true">
+    <h1 class="intro-title" id="introTitle"></h1>
+    <div class="intro-heart" id="introHeart"><svg viewBox="0 0 24 24"><path d="M12 20.6c-.3 0-.6-.1-.8-.3C6.4 16.2 3 13.2 3 9.4 3 6.9 5 5 7.4 5c1.8 0 3.2 1 4.6 2.6C13.4 6 14.8 5 16.6 5 19 5 21 6.9 21 9.4c0 3.8-3.4 6.8-8.2 10.9-.2.2-.5.3-.8.3z"/></svg></div>
+    <div id="introFx"></div>
+  </div>
+
+  <!-- 介面提示 -->
+  <div id="ui">
+    <button class="hint-open" id="hintOpen" type="button">
+      <span class="gesture" aria-hidden="true"><i></i></span>
+      <span>按住信封，往上滑開</span>
+    </button>
+    <div class="hint-scroll" id="hintScroll" aria-hidden="true">
+      <div class="hint-scroll-in" id="hintScrollIn">
+        <span>往下滑，把信抽出來</span>
+        <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+    </div>
+    <div class="hint-scroll hint-more" id="hintMore" aria-hidden="true">
+      <div class="hint-scroll-in">
+        <span class="hint-chip" id="hintMoreText"></span>
+        <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+    </div>
+    <div class="ending" id="ending">
+      <h2 class="end-title" id="endTitle"></h2>
+      <p class="end-sub" id="endSub"></p>
+      <p class="end-hint" id="endHint"></p>
+    </div>
+    <button class="replay" id="replay" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg>
+      <span id="replayText"></span>
+    </button>
+  </div>
+
+  <!-- 照片燈箱 -->
+  <div id="lb" aria-hidden="true" role="dialog" aria-modal="true" aria-label="照片">
+    <div class="lb-backdrop" id="lbBackdrop"></div>
+    <div class="lb-note" id="lbNote">
+      <span class="lb-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.6c-.3 0-.6-.1-.8-.3C6.4 16.2 3 13.2 3 9.4 3 6.9 5 5 7.4 5c1.8 0 3.2 1 4.6 2.6C13.4 6 14.8 5 16.6 5 19 5 21 6.9 21 9.4c0 3.8-3.4 6.8-8.2 10.9-.2.2-.5.3-.8.3z"/></svg></span>
+      <p class="lb-text" id="lbText"></p>
+    </div>
+    <button class="lb-btn lb-close" id="lbClose" type="button" aria-label="關閉"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <button class="lb-btn lb-prev" id="lbPrev" type="button" aria-label="上一張"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="lb-btn lb-next" id="lbNext" type="button" aria-label="下一張"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+
+  <div id="scroller"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+  <script src="content.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
