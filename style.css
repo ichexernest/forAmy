@@ -23,6 +23,7 @@
   --W: 520px;
   --H: 700px;
   --pw: 200px;
+  --card: 1.5;  /* 拍立得高寬比，跟 main.js 的 CARD 一致 */
   --seal: 88px;
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -370,8 +371,8 @@ button { font: inherit; color: inherit; }
   left: 50%;
   top: 50%;
   width: var(--pw);
-  height: calc(var(--pw) * 1.22);
-  margin: calc(var(--pw) * -.61) 0 0 calc(var(--pw) / -2);
+  height: calc(var(--pw) * var(--card));
+  margin: calc(var(--pw) * var(--card) / -2) 0 0 calc(var(--pw) / -2);
   font-size: calc(var(--pw) / 14);
   padding: .7em .7em 0;
   display: flex;
@@ -402,7 +403,7 @@ button { font: inherit; color: inherit; }
 .ph-img {
   position: relative;
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 3 / 4;
   overflow: hidden;
   border-radius: .2em;
   background: linear-gradient(135deg, #ffe0e6, #ffe9d6);

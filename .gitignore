@@ -3,3 +3,6 @@
 node_modules/
 .DS_Store
 Thumbs.db
+
+# 原始照片只留在電腦，不上傳
+photos/originals/

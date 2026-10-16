@@ -11,6 +11,8 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const HEART = '<svg viewBox="0 0 24 24"><path d="M12 20.6c-.3 0-.6-.1-.8-.3C6.4 16.2 3 13.2 3 9.4 3 6.9 5 5 7.4 5c1.8 0 3.2 1 4.6 2.6C13.4 6 14.8 5 16.6 5 19 5 21 6.9 21 9.4c0 3.8-3.4 6.8-8.2 10.9-.2.2-.5.3-.8.3z"/></svg>';
+  // 拍立得卡片的高寬比（照片區是 3:4 直式，下面留寫字的白邊）；要跟 style.css 的 --card 一致
+  const CARD = 1.5;
   const PALETTE = ['#f19bb0', '#ffc2ad', '#d6c4ff', '#ffb8c8', '#f7a6a0', '#ffd59e'];
 
   history.scrollRestoration = 'manual';
@@ -75,7 +77,8 @@
     el.setAttribute('aria-label', `打開照片：${p.title}`);
     el.innerHTML =
       `<i class="tape"></i>` +
-      `<div class="ph-img"><img src="photos/${esc(p.file)}" alt="${esc(p.title)}" draggable="false" decoding="async"></div>` +
+      `<div class="ph-img"><img src="photos/${esc(p.file)}" alt="${esc(p.title)}" draggable="false" decoding="async"` +
+      ` style="object-position:${esc(p.focus || 'center')}"></div>` +
       `<div class="ph-label"><span>${esc(p.title)}</span><small>${esc(p.date)}</small></div>`;
     const img = el.querySelector('img');
     img.addEventListener('error', () => { img.parentElement.classList.add('noimg'); img.remove(); }, { once: true });
@@ -180,11 +183,11 @@
     const areaBottom = vh - envH * 0.24 - 14 - sa.bottom * 0.6;
     const areaH = Math.max(areaBottom - areaTop, vh * 0.4);
     const cellH = areaH / rows;
-    const pw = Math.min((Math.min(vw * 0.94, 1100) / cols) * 0.8, (cellH * 0.84) / 1.22, 270);
+    const pw = Math.min((Math.min(vw * 0.94, 1100) / cols) * 0.8, (cellH * 0.9) / CARD, 270);
     // 照片被高度限制變小時，橫向也跟著收攏，不要散太開
     const cellW = Math.min(Math.min(vw * 0.94, 1100) / cols, pw * 1.34);
     const areaW = cellW * cols;
-    const ph = pw * 1.22;
+    const ph = pw * CARD;
     const rots = [-7, 5, -3, 8, -5, 4, -8, 6];
     const jit = [[-0.06, 0.05], [0.05, -0.05], [-0.03, 0.06], [0.06, 0.03], [-0.05, -0.04], [0.04, 0.05], [-0.04, 0.02], [0.03, -0.03]];
     const pos = D.photos.map((_, i) => {
@@ -552,14 +555,14 @@
     const vw = innerWidth, vh = innerHeight;
     if (vw >= 900) {
       const noteW = Math.min(340, vw * 0.28);
-      const TW = Math.min(520, (vh - 140) / 1.22, vw - noteW - 240);
+      const TW = Math.min(520, (vh - 140) / CARD, vw - noteW - 240);
       const left = (vw - (TW + 56 + noteW)) / 2;
-      return { wide: true, TW, TH: TW * 1.22, cx: left + TW / 2, cy: vh / 2, noteLeft: left + TW + 56, noteW };
+      return { wide: true, TW, TH: TW * CARD, cx: left + TW / 2, cy: vh / 2, noteLeft: left + TW + 56, noteW };
     }
     const sa = safe();
     const noteH = 150, btnSpace = 70 + sa.bottom, topSpace = 60 + sa.top;
-    const TW = Math.min(vw * 0.82, 460, (vh - noteH - btnSpace - topSpace - 10) / 1.22);
-    const TH = TW * 1.22;
+    const TW = Math.min(vw * 0.82, 460, (vh - noteH - btnSpace - topSpace - 10) / CARD);
+    const TH = TW * CARD;
     const top = Math.max(topSpace, topSpace + (vh - topSpace - btnSpace - (TH + 22 + noteH)) / 2);
     const noteW = Math.min(vw - 32, 460);
     return { wide: false, TW, TH, cx: vw / 2, cy: top + TH / 2, noteLeft: (vw - noteW) / 2, noteTop: top + TH + 22, noteW };
