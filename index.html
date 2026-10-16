@@ -29,9 +29,6 @@
         <stop offset="0" stop-color="#cf6079"/>
         <stop offset="1" stop-color="#b34760"/>
       </radialGradient>
-      <clipPath id="waxClip" clipPathUnits="userSpaceOnUse">
-        <path d="M50 3.5C61 2.5 69 8 77.5 11 88 15 95.5 25 96.5 37.5 97.5 47 93.5 54 96.5 63.5 98.5 76 90 86 80 91 70 96 60.5 94 50 97 38 99.5 28 94.5 20 89.5 10 83 3.5 73 4 62 3.5 52 7 46 4 36 2 24 12 14 22 9.5 31 5 40 5 50 3.5Z"/>
-      </clipPath>
     </defs>
   </svg>
 
@@ -54,8 +51,8 @@
       <div class="flap" id="flap">
         <div class="flap-face flap-out" id="flapOut"></div>
         <div class="flap-face flap-in" id="flapIn"></div>
-        <!-- 封蠟上半部：黏在蓋子上，跟著蓋子一起翻開 -->
-        <div class="seal-piece seal-top" id="sealTop"></div>
+        <!-- 封蠟黏在蓋子上，打開時跟著蓋子一起翻起來 -->
+        <div class="seal-piece" id="seal"></div>
       </div>
     </div>
 
@@ -100,14 +97,10 @@
       </svg>
     </div>
 
-    <!-- 封蠟下半部：留在信封上；裂痕和蠟屑也在這層 -->
-    <div class="env env-sealwrap">
-      <div class="seal-piece seal-bot" id="sealBot"></div>
-      <svg class="seal-crack" id="sealCrack" viewBox="0 0 100 100" aria-hidden="true">
-        <polyline id="crackLine" pathLength="1" clip-path="url(#waxClip)"
-          points="0,66 7,69 14,65 22,71 31,66 39,70 47,64 56,69 63,66 71,72 79,67 86,70 93,65 100,67"/>
-      </svg>
-      <div class="seal-crumbs" id="sealCrumbs"></div>
+    <!-- 封蠟彈開時，信封表面的漣漪和星光 -->
+    <div class="env env-sealwrap" aria-hidden="true">
+      <i class="seal-ripple" id="sealRipple"></i>
+      <div class="seal-fx" id="sealFx"></div>
     </div>
 
     <div class="trail" id="trail" aria-hidden="true"></div>
@@ -124,11 +117,11 @@
   <div id="ui">
     <button class="hint-open" id="hintOpen" type="button">
       <span class="gesture" aria-hidden="true"><i></i></span>
-      <span>按住信封，往上滑開</span>
+      <span id="hintOpenText"></span>
     </button>
     <div class="hint-scroll" id="hintScroll" aria-hidden="true">
       <div class="hint-scroll-in" id="hintScrollIn">
-        <span>往下滑，把信抽出來</span>
+        <span id="hintScrollText"></span>
         <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
       </div>
     </div>

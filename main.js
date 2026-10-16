@@ -21,8 +21,7 @@
   const ENV = $$('.env');
   const flapWrap = $('#flapWrap'), flap = $('#flap'), flapOut = $('#flapOut'), flapIn = $('#flapIn');
   const envFront = $('#envFront');
-  const sealTop = $('#sealTop'), sealBot = $('#sealBot'), crack = $('#sealCrack'), crackLine = $('#crackLine');
-  const SEAL = [sealTop, sealBot];
+  const seal = $('#seal'), sealRipple = $('#sealRipple');
   const letter = $('#letter'), paperReal = $('#paperReal'), pcWrap = $('#pcWrap'), pc = $('#pc');
   const fadeT = $('#fadeT'), fadeB = $('#fadeB');
   const foldTop = $('#foldTop'), foldBot = $('#foldBot'), faceFront = $('#faceFront'), faceBack = $('#faceBack');
@@ -53,33 +52,38 @@
     `<div class="pc-sign"><span>${esc(L.closing)}</span><b>${esc(L.signature)}</b></div>` +
     `<div class="pc-doodle" aria-hidden="true">${HEART}${HEART}</div>` +
     (L.ps ? `<p class="pc-ps">${esc(L.ps)}</p>` : '');
-  $('#coverTo').textContent = D.coverTo;
-  $('#coverFrom').textContent = D.coverFrom;
 
-  const introChars = splitChars(introTitle, D.introLine + ' ♡');
+  const setText = (sel, text) => { $(sel).textContent = text ?? ''; };
+  document.title = D.page.title;
+  document.querySelector('meta[name="apple-mobile-web-app-title"]').content = D.page.homeScreenName;
+  setText('#hintOpenText', D.intro.openHint);
+  setText('#hintScrollText', D.intro.scrollHint);
+  setText('#coverTo', D.cover.to);
+  setText('#coverFrom', D.cover.from);
+  setText('#hintMoreText', D.afterLetter.hint);
+  setText('#endSub', D.ending.subtitle);
+  setText('#endHint', D.ending.hint);
+  setText('#replayText', D.ending.replay);
+  const introChars = splitChars(introTitle, D.intro.line);
   const endChars = splitChars(endTitle, D.ending.title);
-  endSub.textContent = D.ending.subtitle;
-  endHint.textContent = D.ending.hint;
-  $('#replayText').textContent = D.ending.replay;
-  $('#hintMoreText').textContent = D.ending.more || '還沒完喔，信封裡還有東西';
 
   const photoEls = D.photos.map((p, i) => {
     const el = document.createElement('div');
     el.className = 'photo' + (i % 2 ? ' alt' : '');
     el.tabIndex = -1;
     el.setAttribute('role', 'button');
-    el.setAttribute('aria-label', `打開照片：${p.label}`);
+    el.setAttribute('aria-label', `打開照片：${p.title}`);
     el.innerHTML =
       `<i class="tape"></i>` +
-      `<div class="ph-img"><img src="${esc(p.src)}" alt="${esc(p.label)}" draggable="false" decoding="async"></div>` +
-      `<div class="ph-label"><span>${esc(p.label)}</span><small>${esc(p.date)}</small></div>`;
+      `<div class="ph-img"><img src="photos/${esc(p.file)}" alt="${esc(p.title)}" draggable="false" decoding="async"></div>` +
+      `<div class="ph-label"><span>${esc(p.title)}</span><small>${esc(p.date)}</small></div>`;
     const img = el.querySelector('img');
     img.addEventListener('error', () => { img.parentElement.classList.add('noimg'); img.remove(); }, { once: true });
     scene.insertBefore(el, envFront);
     return el;
   });
 
-  // 封蠟：不規則的蠟滴外形 + 壓印凹槽 + 浮雕愛心（上下兩片共用同一張圖）
+  // 封蠟：不規則的蠟滴外形 + 壓印凹槽 + 浮雕愛心
   const WAX = 'M50 3.5C61 2.5 69 8 77.5 11 88 15 95.5 25 96.5 37.5 97.5 47 93.5 54 96.5 63.5 98.5 76 90 86 80 91 70 96 60.5 94 50 97 38 99.5 28 94.5 20 89.5 10 83 3.5 73 4 62 3.5 52 7 46 4 36 2 24 12 14 22 9.5 31 5 40 5 50 3.5Z';
   const HEART_D = 'M12 20.6c-.3 0-.6-.1-.8-.3C6.4 16.2 3 13.2 3 9.4 3 6.9 5 5 7.4 5c1.8 0 3.2 1 4.6 2.6C13.4 6 14.8 5 16.6 5 19 5 21 6.9 21 9.4c0 3.8-3.4 6.8-8.2 10.9-.2.2-.5.3-.8.3z';
   const heartAt = (x, y, fill, op = 1) =>
@@ -97,23 +101,16 @@
     heartAt(50, 51.8, '#d8667f') +
     '<ellipse cx="32" cy="22" rx="13" ry="5.5" fill="#fff" opacity=".2" transform="rotate(-28 32 22)"/>' +
     '</svg>';
-  sealTop.innerHTML = SEAL_SVG;
-  sealBot.innerHTML = SEAL_SVG;
+  seal.innerHTML = SEAL_SVG;
 
-  // 斷開時沿著裂痕掉下來的蠟屑
-  const crumbs = Array.from({ length: 9 }, () => {
-    const c = document.createElement('i');
-    const sz = rand(3.5, 8);
-    const pts = Array.from({ length: 5 }, (_, k) => {
-      const a = (k / 5) * Math.PI * 2 + rand(-0.3, 0.3), r = rand(32, 50);
-      return `${50 + Math.cos(a) * r}% ${50 + Math.sin(a) * r}%`;
-    });
-    Object.assign(c.style, {
-      width: sz + 'px', height: sz + 'px', marginLeft: -sz / 2 + 'px', marginTop: -sz / 2 + 'px',
-      clipPath: `polygon(${pts.join(',')})`,
-    });
-    $('#sealCrumbs').appendChild(c);
-    return c;
+  // 封蠟彈開時冒出的小星光
+  const SPARK = '<svg viewBox="0 0 24 24"><path d="M12 1.5c.6 4.6 2.1 6.9 6.4 7.9.9.2.9 1.4 0 1.6-4.3 1-5.8 3.3-6.4 7.9-.1.9-1.4.9-1.5 0-.6-4.6-2.1-6.9-6.4-7.9-.9-.2-.9-1.4 0-1.6 4.3-1 5.8-3.3 6.4-7.9.1-.9 1.4-.9 1.5 0z"/></svg>';
+  const sparks = Array.from({ length: 7 }, (_, i) => {
+    const sp = document.createElement('i');
+    sp.innerHTML = SPARK;
+    sp.style.color = ['#fff4c7', '#ffd1dc', '#ffffff'][i % 3];
+    $('#sealFx').appendChild(sp);
+    return sp;
   });
   const trailHearts = Array.from({ length: 12 }, (_, i) => {
     const h = document.createElement('i');
@@ -238,38 +235,38 @@
     gsap.set(flapWrap, { zIndex: 5 });
     gsap.set(flapOut, { autoAlpha: 1 });
     gsap.set(flapIn, { autoAlpha: 0 });
-    gsap.set(sealTop, { autoAlpha: 1 });
+    gsap.set(seal, { autoAlpha: 1 });
 
     const o = gsap.timeline({ paused: true });
     o.fromTo(introTitle, { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -18, duration: 0.45, ease: 'power2.in', immediateRender: false }, 0)
       .fromTo(hintOpen, { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: 10, duration: 0.3, immediateRender: false }, 0);
 
-    // ① 蓋子開始被往上拉 → 封蠟繃緊、沿著蓋子邊緣裂開
-    o.fromTo(crack, { opacity: 0 }, { opacity: 1, duration: 0.04, immediateRender: false }, 0.02)
-      .fromTo(crackLine, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.22, ease: 'power1.in', immediateRender: false }, 0.02)
-      .fromTo(SEAL, { x: 0 }, { x: S * 0.015, duration: 0.035, repeat: 5, yoyo: true, ease: 'sine.inOut', immediateRender: false }, 0.04)
-      .fromTo(sealBot, { scaleY: 1 }, { scaleY: 0.97, duration: 0.2, ease: 'power1.in', immediateRender: false }, 0.04);
+    // ① 手指往上拉 → 封蠟先被壓扁一點（蓄力）
+    const REST = 'drop-shadow(0px 2px 2px rgba(120,30,50,0.28)) drop-shadow(0px 5px 6px rgba(150,50,70,0.18))';
+    const LIFT = 'drop-shadow(0px 7px 5px rgba(120,30,50,0.2)) drop-shadow(0px 16px 14px rgba(150,50,70,0.22))';
+    o.fromTo(seal, { scaleX: 1, scaleY: 1 }, { scaleX: 1.05, scaleY: 0.9, duration: 0.18, ease: 'power1.in', immediateRender: false }, 0.02);
 
-    // ② 啪：斷開，下半片震一下留在信封上，蠟屑掉落
-    const SNAP = 0.26;
-    o.fromTo(crack, { opacity: 1 }, { opacity: 0, duration: 0.1, immediateRender: false }, SNAP)
-      .fromTo(sealBot, { scaleY: 0.97, y: 0, rotation: 0 },
-        { scaleY: 1, y: S * 0.04, rotation: 2.5, duration: 0.45, ease: 'elastic.out(1.1, .4)', immediateRender: false }, SNAP);
-    const jag = [[14, 65], [22, 71], [31, 66], [39, 70], [47, 64], [56, 69], [63, 66], [71, 72], [79, 67], [86, 70]];
-    crumbs.forEach((c, i) => {
-      const p = jag[i % jag.length];
-      const sx = ((p[0] - 50) / 100) * S, sy = ((p[1] - 50) / 100) * S;
-      const dir = sx >= 0 ? 1 : -1;
-      o.fromTo(c, { x: sx, y: sy, scale: 0, rotation: 0, opacity: 1 },
-        { x: sx + dir * S * rand(0.15, 0.55), y: sy + S * rand(0.5, 1.2), scale: 1, rotation: rand(-200, 200), duration: 0.55, ease: 'power2.in' }, SNAP + i * 0.012)
-        .to(c, { opacity: 0, duration: 0.18 }, SNAP + 0.42 + i * 0.012);
+    // ② 啵！整顆彈起來離開信封，留下一圈漣漪和幾顆小星光
+    const POP = 0.2;
+    o.fromTo(seal, { scaleX: 1.05, scaleY: 0.9, y: 0, rotation: 0, filter: REST },
+      { scaleX: 1.14, scaleY: 1.14, y: -S * 0.1, rotation: -7, filter: LIFT, duration: 0.16, ease: 'power3.out', immediateRender: false }, POP)
+      .fromTo(seal, { scaleX: 1.14, scaleY: 1.14, y: -S * 0.1, rotation: -7 },
+        { scaleX: 1.05, scaleY: 1.05, y: -S * 0.06, rotation: -3, duration: 0.35, ease: 'back.out(3)', immediateRender: false }, POP + 0.16)
+      .fromTo(sealRipple, { scale: 0.5, opacity: 0 }, { scale: 0.8, opacity: 0.7, duration: 0.05, immediateRender: false }, POP)
+      .to(sealRipple, { scale: 2, opacity: 0, duration: 0.5, ease: 'power2.out' }, POP + 0.05);
+    sparks.forEach((sp, i) => {
+      const ang = (i / sparks.length) * Math.PI * 2 - Math.PI / 2 + rand(-0.25, 0.25);
+      const r = S * rand(0.7, 1.05);
+      o.fromTo(sp, { x: 0, y: 0, scale: 0, rotation: 0 },
+        { x: Math.cos(ang) * r, y: Math.sin(ang) * r, scale: rand(0.7, 1.2), rotation: rand(-90, 90), duration: 0.32, ease: 'power2.out' }, POP + i * 0.015)
+        .to(sp, { scale: 0, duration: 0.22, ease: 'power1.in' }, POP + 0.3 + i * 0.015);
     });
 
-    // ③ 蓋子翻開（上半片封蠟黏在蓋子上一起走）
-    const FLAP = 0.2, FLAP_D = 0.95, MID = FLAP + FLAP_D / 2;
+    // ③ 蓋子翻開，封蠟黏在蓋子上一起走
+    const FLAP = 0.26, FLAP_D = 0.95, MID = FLAP + FLAP_D / 2;
     o.fromTo(flap, { rotationX: 0 }, { rotationX: 180, duration: FLAP_D, ease: 'power2.inOut', immediateRender: false }, FLAP)
       .set(flapWrap, { zIndex: 2 }, MID)
-      .set([flapOut, sealTop], { autoAlpha: 0 }, MID)
+      .set([flapOut, seal], { autoAlpha: 0 }, MID)
       .set(flapIn, { autoAlpha: 1 }, MID)
       .fromTo(letter, { yPercent: 0 }, { yPercent: G.peekPct, duration: 0.6, ease: 'back.out(2.2)', immediateRender: false }, 0.9)
       .fromTo(hintScroll, { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.4, immediateRender: false }, 1.15);
@@ -766,7 +763,7 @@
       .to(introHeart, { y: G.envH * 0.01 + S * 0.018, scale: sealHeart / heartPx, rotation: 360, duration: 0.3, ease: "power2.in" }, 1.75)
       .set(letter, { autoAlpha: 1 }, 2.05)
       .set(introHeart, { autoAlpha: 0 }, 2.05)
-      .fromTo(SEAL, { autoAlpha: 0, scale: 1.45 }, { autoAlpha: 1, scale: 1, duration: 0.6, ease: 'elastic.out(1, .45)' }, 2.05)
+      .fromTo(seal, { autoAlpha: 0, scale: 1.45 }, { autoAlpha: 1, scale: 1, duration: 0.6, ease: 'elastic.out(1, .45)' }, 2.05)
       .to(scene, { scaleY: 0.9, scaleX: 1.06, duration: 0.09, ease: 'power1.out' }, 2.05)
       .to(scene, { scaleY: 1, scaleX: 1, duration: 0.75, ease: 'elastic.out(1, .38)' }, 2.14)
       .fromTo(hintOpen, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 2.4)

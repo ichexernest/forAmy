@@ -175,51 +175,43 @@ button { font: inherit; color: inherit; }
 .env-front svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .env-sealwrap { z-index: 6; }
 
-/* 封蠟：同一個正方形，上下兩片各用 clip-path 切開；
-   上片在蓋子裡，下片在信封上，所以蓋子打開時會沿著裂痕斷開 */
+/* 封蠟：黏在蓋子尖端，打開時整顆彈起來 */
 .seal-piece {
   position: absolute;
   left: calc(50% - var(--seal) / 2);
   top: calc(var(--envH) * .51 - var(--seal) / 2);
   width: var(--seal);
   height: var(--seal);
-  filter: drop-shadow(0 2px 2px rgba(120, 30, 50, .28)) drop-shadow(0 5px 6px rgba(150, 50, 70, .18));
+  filter: drop-shadow(0px 2px 2px rgba(120, 30, 50, .28)) drop-shadow(0px 5px 6px rgba(150, 50, 70, .18));
 }
 .seal-piece svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.seal-top svg { clip-path: polygon(0 0, 100% 0, 100% 67%, 93% 65%, 86% 70%, 79% 67%, 71% 72%, 63% 66%, 56% 69%, 47% 64%, 39% 70%, 31% 66%, 22% 71%, 14% 65%, 7% 69%, 0 66%); }
-.seal-bot svg { clip-path: polygon(0 66%, 7% 69%, 14% 65%, 22% 71%, 31% 66%, 39% 70%, 47% 64%, 56% 69%, 63% 66%, 71% 72%, 79% 67%, 86% 70%, 93% 65%, 100% 67%, 100% 100%, 0 100%); }
-.seal-crack {
+.seal-ripple {
   position: absolute;
   left: calc(50% - var(--seal) / 2);
   top: calc(var(--envH) * .51 - var(--seal) / 2);
   width: var(--seal);
   height: var(--seal);
-  overflow: visible;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .9);
+  box-shadow: 0 0 10px rgba(255, 190, 205, .8), inset 0 0 8px rgba(255, 190, 205, .6);
   opacity: 0;
 }
-.seal-crack polyline {
-  fill: none;
-  stroke: #7e2640;
-  stroke-width: 2.4;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-}
-.seal-crumbs {
+.seal-fx {
   position: absolute;
   left: 50%;
   top: calc(var(--envH) * .51);
   width: 0;
   height: 0;
 }
-.seal-crumbs i {
+.seal-fx i {
   position: absolute;
-  left: 0;
-  top: 0;
-  background: linear-gradient(140deg, #e47f94, #b4435d);
-  box-shadow: 0 1px 1px rgba(110, 25, 45, .3);
+  left: -7px;
+  top: -7px;
+  width: 14px;
+  height: 14px;
+  filter: drop-shadow(0 0 3px rgba(255, 170, 190, .9));
 }
+.seal-fx svg { display: block; width: 100%; height: 100%; fill: currentColor; }
 .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
 /* ───────── 信紙 ───────── */
@@ -248,30 +240,31 @@ button { font: inherit; color: inherit; }
 }
 .pc-wrap { will-change: transform; }
 
+/* 行高一定要是整數 px：iPhone Safari 會把小數的橫線間距四捨五入，
+   一行差一點點，越往下字跟線就越對不齊 */
 .pc {
-  --lh: 2.05em;
+  --lh: 36px;
   position: relative;
   width: var(--W);
-  padding: calc(var(--lh) * 1.4) clamp(22px, 7%, 44px) calc(var(--lh) * 1.6);
+  padding: calc(var(--lh) * 1.5) clamp(22px, 7%, 44px) calc(var(--lh) * 1.5);
   font-family: var(--f-hand);
   font-size: 17.5px;
   line-height: var(--lh);
   color: var(--ink);
-  background-image: repeating-linear-gradient(to bottom,
-      transparent 0,
-      transparent calc(var(--lh) - 1px),
-      var(--line) calc(var(--lh) - 1px),
-      var(--line) var(--lh));
+  /* 一格剛好一行高、最底下 1px 是線，整格往下重複 */
+  background-image: linear-gradient(to bottom, transparent calc(100% - 1px), var(--line) calc(100% - 1px));
+  background-size: 100% var(--lh);
+  background-repeat: repeat-y;
   background-origin: content-box;
   background-clip: content-box;
 }
+.pc * { line-height: var(--lh); }
 .pc p { margin: 0; text-indent: 2em; }
 .pc .pc-date {
   text-align: right;
   color: var(--ink-soft);
   font-family: var(--f-script);
   font-size: 1.25em;
-  line-height: calc(var(--lh) / 1.25);
 }
 .pc .pc-greet { text-indent: 0; font-weight: 700; margin-bottom: var(--lh); }
 .pc-sign {
@@ -283,7 +276,6 @@ button { font: inherit; color: inherit; }
   display: block;
   font-weight: 700;
   font-size: 1.15em;
-  line-height: calc(var(--lh) / 1.15);
   color: var(--rose-deep);
 }
 .pc-doodle {
@@ -680,7 +672,7 @@ button { font: inherit; color: inherit; }
 .lb-next { right: max(12px, 2.5vw); top: 50%; margin-top: -22px; }
 
 @media (max-width: 640px) {
-  .pc { font-size: 15.5px; }
+  .pc { --lh: 32px; font-size: 15.5px; }
   .hint-open { font-size: 14px; }
   .lb-prev, .lb-next { top: auto; bottom: calc(var(--sab) + max(14px, 2vh)); margin-top: 0; }
   .lb-text { font-size: 15.5px; line-height: 1.8; }
