@@ -21,7 +21,8 @@ window.LOVE = {
 
   /* ─── ② 開場（前三秒＋還沒拆信時） ───────────────── */
   intro: {
-    line: '100天快樂 ♡',     // 開場那句話（♡ 會自動變成粉紅色）
+    names: '子欣 & 逸哲',      // 開場標題第一行（& 會自動變成粉紅色手寫字）
+    title: 'Happy 100 Days',   // 開場標題第二行（大大的手寫字）
     openHint: '按住信封，往上滑開',  // 信封下面的操作提示
     scrollHint: '往下滑，把信抽出來', // 拆開之後的捲動提示
   },
@@ -138,7 +139,7 @@ window.LOVE = {
   music: {
     file: 'The Black Skirts - EVERYTHING - The Worst Taste.mp3',
     soundHint: '記得把聲音打開喔 ♪',   // 最開頭的提醒
-    start: '輕點開始',                // 提醒下面的按鈕
+    start: '開始',                // 提醒下面的按鈕
     volume: 0.7,                      // 0～1（iPhone 會用手機本身的音量，這個設定只對電腦有效）
   },
 };

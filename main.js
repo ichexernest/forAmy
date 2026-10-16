@@ -39,7 +39,7 @@
     el.textContent = '';
     for (const ch of text) {
       const s = document.createElement('span');
-      s.className = 'ch' + (ch === '♡' ? ' accent' : '');
+      s.className = 'ch' + (ch === '♡' ? ' accent' : ch === '&' ? ' amp' : '');
       s.textContent = ch === ' ' ? ' ' : ch;
       el.appendChild(s);
     }
@@ -66,7 +66,9 @@
   setText('#endSub', D.ending.subtitle);
   setText('#endHint', D.ending.hint);
   setText('#replayText', D.ending.replay);
-  const introChars = splitChars(introTitle, D.intro.line);
+  const nameChars = splitChars($('#itNames'), D.intro.names);
+  const titleChars = splitChars($('#itText'), D.intro.title);
+  const introChars = [...nameChars, ...titleChars];
   const endChars = splitChars(endTitle, D.ending.title);
 
   const photoEls = D.photos.map((p, i) => {
@@ -182,26 +184,41 @@
     const areaTop = Math.max(vh * 0.17, endEl.offsetTop + endEl.offsetHeight + (mobile ? 22 : 28));
     const areaBottom = vh - envH * 0.24 - 14 - sa.bottom * 0.6;
     const areaH = Math.max(areaBottom - areaTop, vh * 0.4);
-    const cellH = areaH / rows;
-    const pw = Math.min((Math.min(vw * 0.94, 1100) / cols) * 0.8, (cellH * 0.9) / CARD, 270);
-    // 照片被高度限制變小時，橫向也跟著收攏，不要散太開
-    const cellW = Math.min(Math.min(vw * 0.94, 1100) / cols, pw * 1.34);
-    const areaW = cellW * cols;
+    // 每張拍立得有自己的一格：歪斜後的外框 + 間距一定塞得進格子裡，所以永遠不會疊到
+    const rots = [-5, 4, -3, 6, -4, 3, -6, 5];
+    const maxA = (6 * Math.PI) / 180;
+    const fw = Math.cos(maxA) + CARD * Math.sin(maxA);   // 寬 1 的卡片歪 6° 後外框的寬
+    const fh = CARD * Math.cos(maxA) + Math.sin(maxA);   // …外框的高
+    const gap = mobile ? 14 : 22;
+    const side = mobile ? 10 : 40;
+    const usableW = Math.min(vw - side * 2, 1100);
+    const cellW = usableW / cols;
+    // 手機：照片以寬度為準盡量放大，放不下一個畫面就往下捲；電腦：整個塞進一個畫面
+    const pw = mobile
+      ? Math.min((cellW - gap) / fw, 230)
+      : Math.min((cellW - gap) / fw, (areaH / rows - gap) / fh, 270);
     const ph = pw * CARD;
-    const rots = [-7, 5, -3, 8, -5, 4, -8, 6];
-    const jit = [[-0.06, 0.05], [0.05, -0.05], [-0.03, 0.06], [0.06, 0.03], [-0.05, -0.04], [0.04, 0.05], [-0.04, 0.02], [0.03, -0.03]];
+    const boundW = pw * fw, boundH = pw * fh;
+    const stagger = mobile && cols === 2 ? boundH * 0.18 : 0;   // 右欄往下錯開
+    const cellH = mobile ? boundH + gap + 12 : Math.max(areaH / rows, boundH + gap);
+    const spareX = Math.max(0, (cellW - boundW - gap) / 2);
+    const spareY = Math.max(0, (cellH - boundH - gap) / 2);
+    const jit = [[-0.7, 0.3], [0.8, -0.6], [-0.4, 0.8], [0.6, -0.3], [-0.8, 0.5], [0.5, 0.7], [-0.6, -0.4], [0.7, 0.2]];
     const pos = D.photos.map((_, i) => {
       const r = Math.floor(i / cols), c = i % cols;
       const inRow = Math.min(cols, n - r * cols);
       const offX = ((cols - inRow) * cellW) / 2;
-      const cx = (vw - areaW) / 2 + offX + cellW * (c + 0.5) + jit[i % 8][0] * cellW;
-      const cy = areaTop + cellH * (r + 0.5) + jit[i % 8][1] * cellH;
-      return { x: cx - vw / 2, y: cy - vh / 2, r: rots[i % 8] };
+      const cx = (vw - usableW) / 2 + offX + cellW * (c + 0.5) + jit[i % 8][0] * spareX;
+      const cy = areaTop + cellH * (r + 0.5) + jit[i % 8][1] * spareY + (c % 2 ? stagger : 0);
+      return { x: cx - vw / 2, y: cy - vh / 2, r: rots[i % 8], s: 1, bottom: cy + boundH / 2 };
     });
+    // 照片超出一個畫面時，最後整頁往上捲這麼多（留出最下面按鈕的位置）
+    const boardBottom = Math.max(...pos.map((p) => p.bottom));
+    const pan = Math.max(0, boardBottom - (vh - 72 - sa.bottom));
     const sp = Math.min((0.42 * envW) / pw, (0.6 * envH) / ph);
 
     return {
-      vw, vh, mobile, envW, envH, W, H, s, pw, ph, sp, pos,
+      vw, vh, mobile, envW, envH, W, H, s, pw, ph, sp, pos, pan,
       peekPx,
       peekPct: (-peekPx / H) * 100,
       dEnv,
@@ -305,6 +322,7 @@
     gsap.set(hintScrollIn, { opacity: 1, y: 0 });
     gsap.set(trailHearts, { x: 0, y: 0, scale: 0, opacity: 1 });
     gsap.set(bgWarm, { opacity: 0 });
+    gsap.set('#ending', { y: 0 });
     const n = photoEls.length;
     photoEls.forEach((el, i) => {
       el.classList.remove('lifted');
@@ -392,7 +410,7 @@
       const ti = t + i * 0.22, p = G.pos[i];
       tl.to(el, { y: G.yRise, duration: 0.45, ease: 'power2.out' }, ti)
         .set(el, { zIndex: 10 + i }, ti + 0.45)
-        .to(el, { x: p.x, y: p.y, rotation: p.r, scale: 1, duration: 0.85, ease: 'back.out(1.3)' }, ti + 0.45);
+        .to(el, { x: p.x, y: p.y, rotation: p.r, scale: p.s, duration: 0.85, ease: 'back.out(1.3)' }, ti + 0.45);
     });
     const tDone = t + (n - 1) * 0.22 + 0.45 + 0.85;
     tl.to(ENV, { y: G.envEnd, scale: 0.72, duration: 0.8, ease: 'power2.inOut' }, t + n * 0.22 + 0.2);
@@ -401,8 +419,18 @@
     tl.fromTo(endChars, { yPercent: 110, opacity: 0, rotation: 8 },
       { yPercent: 0, opacity: 1, rotation: 0, stagger: 0.035, duration: 0.5, ease: 'back.out(2)' }, tDone - 0.5);
     tl.fromTo(endTitle, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, tDone - 0.5);
-    tl.fromTo([endSub, endHint, replay], { autoAlpha: 0, y: 14 },
+    tl.fromTo([endSub, endHint], { autoAlpha: 0, y: 14 },
       { autoAlpha: 1, y: 0, stagger: 0.12, duration: 0.4, ease: 'power2.out' }, tDone);
+
+    // I｜照片放不進一個畫面時（手機），繼續往下滑 → 整頁連同標題往上捲，看到最下面那排
+    let tReplay = tDone + 0.24;
+    if (G.pan > 0) {
+      const tp = tDone + 0.5, dur = (G.pan / G.unit) * 1.25;
+      photoEls.forEach((el, i) => tl.to(el, { y: G.pos[i].y - G.pan, duration: dur, ease: 'none' }, tp));
+      tl.to('#ending', { y: -G.pan, duration: dur, ease: 'none' }, tp);
+      tReplay = tp + dur - 0.15;   // 捲到底、最下面那排露出來之後才出現，不會壓在照片上
+    }
+    tl.fromTo(replay, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power2.out' }, tReplay);
     tl.to({}, { duration: 0.6 });
 
     state.photosDone = tDone;
@@ -758,8 +786,13 @@
       .fromTo(introHeart, { scale: 0, rotation: -25 }, { scale: 1, rotation: 0, duration: 0.6, ease: 'back.out(3)' }, 0.1)
       .to(introHeart, { scale: 1.16, duration: 0.13, yoyo: true, repeat: 3, ease: 'power1.inOut' }, 0.68)
       .add(() => burst(12, Math.min(innerWidth * 0.3, 150)), 0.72)
-      .fromTo(introChars, { yPercent: 120, opacity: 0, rotation: () => rand(-18, 18) },
-        { yPercent: 0, opacity: 1, rotation: 0, duration: 0.6, stagger: 0.045, ease: 'back.out(2.2)' }, 0.8)
+      // 名字一個字一個字彈出來，接著 Happy 100 Days 歪歪地蹦出來，最後畫一條手寫底線
+      .fromTo(nameChars, { yPercent: 120, opacity: 0, rotation: () => rand(-18, 18) },
+        { yPercent: 0, opacity: 1, rotation: 0, duration: 0.55, stagger: 0.05, ease: 'back.out(2.2)' }, 0.75)
+      .fromTo(titleChars, { yPercent: 70, scale: 0.4, opacity: 0, rotation: () => rand(-24, 24) },
+        { yPercent: 0, scale: 1, opacity: 1, rotation: 0, duration: 0.6, stagger: 0.035, ease: 'back.out(2.6)' }, 0.95)
+      .fromTo('#itSwash', { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.55, ease: 'power2.inOut' }, 1.4)
+      .fromTo('.it-spark', { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.5, stagger: 0.12, ease: 'back.out(3)' }, 1.55)
       // 信封從天而降，愛心化成封蠟
       .to(scene, { y: 0, duration: 0.6, ease: 'power3.in' }, 1.45)
       .to(introHeart, { y: -G.envH * 0.34, scale: 1.08, duration: 0.3, ease: 'power2.out' }, 1.45)
