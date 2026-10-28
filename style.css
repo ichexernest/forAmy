@@ -1122,17 +1122,17 @@ button { font: inherit; color: inherit; }
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 9%;
+  bottom: 16%;
   text-align: center;
-  font-family: var(--f-hand);
-  font-weight: 700;
-  font-size: clamp(22px, 6.4vw, 28px);
-  letter-spacing: .3em;
-  margin-right: -.3em;
-  color: var(--rose-deep);
+  font-family: var(--f-round);
+  font-weight: 400;
+  font-size: clamp(18px, 5vw, 22px);
+  letter-spacing: .22em;
+  margin-right: -.22em;
+  color: var(--ink);
   text-shadow: 0 1px 0 rgba(255, 255, 255, .7);
 }
-/* 封蠟的位置：FaceTime 圖示，外面一圈圈淡淡的綠色波紋，像來電中 */
+/* 封蠟：壓印一台小攝影機（看得出是 FaceTime 視訊），外面一圈圈淡淡的粉色波紋，像來電中 */
 .fe-seal {
   position: absolute;
   left: 50%;
@@ -1141,29 +1141,24 @@ button { font: inherit; color: inherit; }
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
 }
-.ft-icon {
+.fe-wax {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 24%;
-  background: linear-gradient(180deg, #5df27c 0%, #19c23f 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -2px 4px rgba(0, 90, 30, .18), 0 6px 12px -4px rgba(25, 160, 60, .5);
-  transform: rotate(-6deg);
+  filter: drop-shadow(0 2px 2px rgba(120, 30, 50, .28)) drop-shadow(0 6px 8px rgba(150, 50, 70, .2));
 }
-.ft-icon svg { width: 62%; height: 62%; fill: #fff; display: block; }
+.fe-wax svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .fe-ring {
   position: absolute;
-  inset: 0;
-  border-radius: 30%;
-  border: 2px solid rgba(52, 199, 89, .45);
+  inset: 4%;
+  border-radius: 50%;
+  border: 2px solid rgba(232, 120, 143, .4);
   animation: feRing 3s ease-out infinite;
   opacity: 0;
 }
 .fe-ring:nth-child(2) { animation-delay: 1s; }
 .fe-ring:nth-child(3) { animation-delay: 2s; }
 @keyframes feRing {
-  0% { transform: scale(.95) rotate(-6deg); opacity: .7; }
-  100% { transform: scale(1.9) rotate(-6deg); opacity: 0; }
+  0% { transform: scale(.95); opacity: .7; }
+  100% { transform: scale(1.85); opacity: 0; }
 }
 .ft-btn:focus-visible .fe-back { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--rose); }
