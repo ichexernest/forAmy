@@ -190,11 +190,25 @@
       <!-- 被雲包圍的 FaceTime 按鈕：後面一層雲、按鈕、前面一層雲 -->
       <div class="ft-nest" id="ftNest">
         <div class="ft-layer ft-back" id="ftBack" aria-hidden="true"></div>
+        <!-- 打給我：一封大信封，封蠟的位置換成 FaceTime 圖示 -->
         <a class="ft-btn" id="callBtn" href="#">
-          <span class="ft-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2.6"/><path d="M15.6 10.6l4.2-2.7c.5-.3 1.2.1 1.2.7v6.8c0 .6-.7 1-1.2.7l-4.2-2.7z"/></svg>
+          <span class="fe" id="fe">
+            <span class="fe-back"></span>
+            <svg class="fe-front" viewBox="0 0 100 70" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M0 3 Q0 0 2.6 1.7 L47 35.4 Q50 37.6 53 35.4 L97.4 1.7 Q100 0 100 3 L100 66.5 Q100 70 96.5 70 L3.5 70 Q0 70 0 66.5 Z" fill="url(#gFront)"/>
+              <path d="M1.2 68.6 L45.6 39.4 M98.8 68.6 L54.4 39.4" stroke="#e9a7b3" stroke-opacity=".45" stroke-width="1.2" fill="none" vector-effect="non-scaling-stroke"/>
+              <path d="M1.2 69.4 L45.6 40.2 M98.8 69.4 L54.4 40.2" stroke="#fff" stroke-opacity=".6" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"/>
+            </svg>
+            <span class="fe-flap" id="feFlap"><span class="fe-flap-face"></span></span>
+            <span class="fe-stamp" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.6c-.3 0-.6-.1-.8-.3C6.4 16.2 3 13.2 3 9.4 3 6.9 5 5 7.4 5c1.8 0 3.2 1 4.6 2.6C13.4 6 14.8 5 16.6 5 19 5 21 6.9 21 9.4c0 3.8-3.4 6.8-8.2 10.9-.2.2-.5.3-.8.3z"/></svg></span>
+            <span class="fe-text" id="callBtnText"></span>
+            <span class="fe-seal" aria-hidden="true">
+              <i class="fe-ring"></i><i class="fe-ring"></i><i class="fe-ring"></i>
+              <span class="ft-icon">
+                <svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2.6"/><path d="M15.6 10.6l4.2-2.7c.5-.3 1.2.1 1.2.7v6.8c0 .6-.7 1-1.2.7l-4.2-2.7z"/></svg>
+              </span>
+            </span>
           </span>
-          <span class="ft-text" id="callBtnText"></span>
         </a>
         <div class="ft-layer ft-front" id="ftFront" aria-hidden="true"></div>
         <span class="call-fx" id="callFx" aria-hidden="true"></span>

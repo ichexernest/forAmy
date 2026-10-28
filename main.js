@@ -1128,32 +1128,46 @@
   } else {
     $('#ftNest').remove();   // 沒有按鈕時，那一圈雲也一起拿掉
   }
-  /* ───────── 黏土風的雲 ─────────
-     每朵雲用 5～7 顆圓疊出來，每顆圓都有自己的亮面（左上）和粉紫色陰影（右下），
-     底下一條圓角長條讓雲底比較平，再墊一圈很淡的影子 */
+  /* ───────── 雲 ─────────
+     一朵雲 = 一排高低大小不一的雲團（中間高、兩邊低），上面再疊兩三團，所以每朵外形都不一樣。
+     整朵共用同一層光影（上面亮、越往下越帶粉紫），看起來是一整團軟軟的雲，不是一顆顆球；
+     每團再加一點很淡的亮面保留蓬鬆感，邊緣稍微柔化 */
   let cloudUid = 0;
-  const PUFF_SETS = [
-    [[48, 72, 26], [80, 52, 36], [118, 50, 32], [148, 68, 26], [100, 74, 30], [70, 82, 22], [132, 84, 20]],
-    [[44, 74, 22], [72, 56, 30], [104, 44, 36], [138, 58, 28], [160, 76, 20], [96, 80, 28]],
-    [[56, 70, 28], [92, 50, 34], [128, 62, 30], [80, 82, 24], [116, 84, 22]],
-  ];
-  function cloudSVG(set, tint, flip) {
+  const seeded = (seed) => { let s = (seed * 7919 + 104729) % 233280; return () => (s = (s * 9301 + 49297) % 233280) / 233280; };
+  function cloudSVG(seed, tint, flip) {
+    const R = seeded(seed);
     const id = 'cg' + ++cloudUid;
-    const puffs = [...PUFF_SETS[set % PUFF_SETS.length]].sort((a, b) => a[1] - b[1]);   // 上面的先畫，下面的疊在前面
+    const puffs = [];
+    const n = 6 + Math.floor(R() * 3);
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1), mid = Math.max(0, 1 - Math.abs(t - 0.5) * 1.7);
+      const r = 13 + mid * 22 + R() * 9;
+      puffs.push([24 + t * 152 + (R() - 0.5) * 12, 100 - r * 0.7 - mid * 12 - R() * 6, r]);
+    }
+    const ridge = Math.min(...puffs.map((p) => p[1]));
+    const extra = 2 + Math.floor(R() * 2);
+    for (let i = 0; i < extra; i++) puffs.push([62 + R() * 76, ridge + 4 + R() * 10, 15 + R() * 13]);
+    puffs.sort((a, b) => a[1] - b[1]);
     const minX = Math.min(...puffs.map((p) => p[0] - p[2])), maxX = Math.max(...puffs.map((p) => p[0] + p[2]));
+    const topY = Math.min(...puffs.map((p) => p[1] - p[2]));
+    const body = puffs.map(([x, y, r]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"/>`).join('');
+    const shine = puffs.map(([x, y, r]) => `<circle cx="${(x - r * 0.14).toFixed(1)}" cy="${(y - r * 0.18).toFixed(1)}" r="${(r * 0.8).toFixed(1)}"/>`).join('');
     return `<svg viewBox="0 0 200 120"${flip ? ' style="transform:scaleX(-1)"' : ''}><defs>` +
-      `<radialGradient id="${id}" cx="36%" cy="24%" r="84%"><stop offset="0" stop-color="#ffffff"/><stop offset=".58" stop-color="#fff5f8"/><stop offset="1" stop-color="${tint}"/></radialGradient>` +
-      `<filter id="${id}s" x="-20%" y="-80%" width="140%" height="260%"><feGaussianBlur stdDeviation="5"/></filter></defs>` +
-      `<ellipse cx="${(minX + maxX) / 2}" cy="109" rx="${(maxX - minX) / 2.3}" ry="6" fill="#c86e87" opacity=".2" filter="url(#${id}s)"/>` +
-      `<rect x="${minX + 12}" y="80" width="${maxX - minX - 24}" height="26" rx="13" fill="url(#${id})"/>` +
-      puffs.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#${id})"/>`).join('') +
+      `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="0" y1="${topY.toFixed(1)}" x2="0" y2="106">` +
+        `<stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#fff8fa"/><stop offset="1" stop-color="${tint}"/></linearGradient>` +
+      `<radialGradient id="${id}h" cx="40%" cy="30%" r="60%"><stop offset="0" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>` +
+      `<filter id="${id}s" x="-20%" y="-80%" width="140%" height="260%"><feGaussianBlur stdDeviation="5"/></filter>` +
+      `<filter id="${id}b" x="-10%" y="-15%" width="120%" height="130%"><feGaussianBlur stdDeviation=".8"/></filter></defs>` +
+      `<ellipse cx="${((minX + maxX) / 2).toFixed(1)}" cy="109" rx="${((maxX - minX) / 2.3).toFixed(1)}" ry="6" fill="#c86e87" opacity=".18" filter="url(#${id}s)"/>` +
+      `<g fill="url(#${id})" filter="url(#${id}b)"><rect x="${(minX + 10).toFixed(1)}" y="84" width="${(maxX - minX - 20).toFixed(1)}" height="20" rx="10"/>${body}</g>` +
+      `<g fill="url(#${id}h)" opacity=".5">${shine}</g>` +
       '</svg>';
   }
-  function makeCloud(parent, { left, top, width, set, tint, flip, opacity = 1 }) {
+  function makeCloud(parent, { left, top, width, seed, tint, flip, opacity = 1 }) {
     const cl = document.createElement('div');
     cl.className = 'cl';
     Object.assign(cl.style, { left: left + 'px', top: top + 'px', width: width + 'px', opacity });
-    cl.innerHTML = `<span class="cl-in">${cloudSVG(set, tint, flip)}</span>`;
+    cl.innerHTML = `<span class="cl-in">${cloudSVG(seed, tint, flip)}</span>`;
     parent.appendChild(cl);
     return cl;
   }
@@ -1169,25 +1183,25 @@
     [cloudsEl, ftBack, ftFront].forEach((el) => { if (el) el.textContent = ''; });
     const hasNest = ftNest && ftNest.isConnected;
     const W = hasNest ? ftNest.offsetWidth : 0, H = hasNest ? ftNest.offsetHeight : 0;
-    // [圖層, 左, 上, 寬（佔按鈕區寬度）, 雲的樣子, 陰影色, 翻面, 從哪個方向飄進來]
+    // [圖層, 左, 上, 寬（佔按鈕區寬度）, 雲的外形編號, 陰影色, 翻面, 從哪個方向飄進來]
     const NEST = [
-      [ftBack, -0.1, 0.16, 0.6, 0, PINK, false, [-1, 0.2]],
-      [ftBack, 0.5, 0.04, 0.58, 1, LILAC, false, [1, 0.1]],
-      [ftBack, 0.31, -0.16, 0.36, 2, PINK, true, [0, -1]],
-      [ftFront, -0.02, 0.42, 0.44, 2, LILAC, false, [-1, 0.6]],
-      [ftFront, 0.58, 0.38, 0.44, 0, PINK, true, [1, 0.6]],
+      [ftBack, -0.14, 0.24, 0.62, 3, PINK, false, [-1, 0.2]],
+      [ftBack, 0.52, 0.08, 0.64, 7, LILAC, false, [1, 0.1]],
+      [ftBack, 0.4, 0.04, 0.38, 11, PINK, true, [0, -1]],
+      [ftFront, -0.1, 0.58, 0.5, 5, LILAC, false, [-1, 0.6]],
+      [ftFront, 0.58, 0.55, 0.52, 9, PINK, true, [1, 0.6]],
     ];
-    if (hasNest) NEST.forEach(([layer, l, t, w, set, tint, flip, from]) => {
-      const el = makeCloud(layer, { left: l * W, top: t * H, width: w * W, set, tint, flip });
+    if (hasNest) NEST.forEach(([layer, l, t, w, seed, tint, flip, from]) => {
+      const el = makeCloud(layer, { left: l * W, top: t * H, width: w * W, seed, tint, flip });
       nestClouds.push({ el, from, dir: l + w / 2 < 0.5 ? -1 : 1 });
       if (!reduce) cloudTweens.push(gsap.to(el.firstChild, { y: -rand(4, 9), duration: rand(2.6, 4.2), ease: 'sine.inOut', yoyo: true, repeat: -1, delay: -rand(0, 3) }));
     });
     // 背景遠處的雲：比較淡、慢慢從左飄到右
     const vw = innerWidth, vh = G ? G.vh : innerHeight;
-    [[0.1, 0.42, 0.55, 1, LILAC, 120], [0.3, 0.3, 0.45, 2, PINK, 150], [0.74, 0.5, 0.6, 0, PINK, 105], [0.9, 0.34, 0.5, 1, LILAC, 135]]
-      .forEach(([top, wr, op, set, tint, dur], i) => {
+    [[0.1, 0.42, 0.5, 13, LILAC, 120], [0.3, 0.3, 0.4, 17, PINK, 150], [0.74, 0.5, 0.55, 19, PINK, 105], [0.9, 0.34, 0.45, 23, LILAC, 135]]
+      .forEach(([top, wr, op, seed, tint, dur], i) => {
         const w = Math.max(140, vw * wr * (G && G.mobile ? 1.3 : 1));
-        const el = makeCloud(cloudsEl, { left: 0, top: top * vh - w * 0.3, width: w, set, tint, flip: i % 2 === 1, opacity: op });
+        const el = makeCloud(cloudsEl, { left: 0, top: top * vh - w * 0.3, width: w, seed, tint, flip: i % 2 === 1, opacity: op });
         const drift = gsap.fromTo(el, { x: -w }, { x: vw, duration: dur * (reduce ? 3 : 1), ease: 'none', repeat: -1 });
         drift.progress((i * 0.31 + 0.15) % 1);
         cloudTweens.push(drift);
@@ -1204,6 +1218,9 @@
   // FaceTime 按鈕：按下去輕輕壓一下，周圍的雲往外鼓開再慢慢回來，飄起幾顆小愛心
   if (callBtn.isConnected) {
     gsap.set(callBtn, { xPercent: -50, yPercent: -50 });
+    const fe = $('#fe'), feFlap = $('#feFlap');
+    gsap.set(feFlap, { transformPerspective: 700 });
+    if (!reduce) gsap.to(fe, { y: -7, rotation: 0.6, duration: 2.6, ease: 'sine.inOut', yoyo: true, repeat: -1 });
     const callFx = $('#callFx');
     const hearts = Array.from({ length: 6 }, (_, k) => {
       const h = document.createElement('i');
@@ -1215,7 +1232,8 @@
       return h;
     });
     callBtn.addEventListener('click', () => {
-      gsap.fromTo(callBtn, { scale: 0.93 }, { scale: 1, duration: 0.7, ease: 'elastic.out(1, .45)', overwrite: 'auto' });
+      gsap.fromTo(callBtn, { scale: 0.94 }, { scale: 1, duration: 0.75, ease: 'elastic.out(1, .45)', overwrite: 'auto' });
+      gsap.fromTo(feFlap, { rotationX: 0 }, { keyframes: { rotationX: [0, 48, 0] }, duration: 0.95, ease: 'power2.inOut', overwrite: 'auto' });
       nestClouds.forEach(({ el, dir }) => {
         gsap.to(el.firstChild, {
           keyframes: [
