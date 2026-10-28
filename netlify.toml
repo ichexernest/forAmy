@@ -2,3 +2,9 @@
 [build]
   publish = "."
   command = ""
+
+# 不讓搜尋引擎收錄（連照片、音樂這些檔案也一起）
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noimageindex"

@@ -7,9 +7,32 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="給妳的信">
+  <meta name="apple-mobile-web-app-title" content="100 days">
   <meta name="format-detection" content="telephone=no, date=no">
-  <title>給妳的一封信</title>
+  <script>
+    // 在 LINE 裡點開時，改用 Safari 開（LINE 內建瀏覽器的捲動、網址列、音樂都比較不穩）
+    (function () {
+      if (/\bLine\//i.test(navigator.userAgent) && !/[?&]openExternalBrowser=1/.test(location.search)) {
+        var sep = location.search ? '&' : '?';
+        location.replace(location.pathname + location.search + sep + 'openExternalBrowser=1' + location.hash);
+      }
+    })();
+  </script>
+  <!-- 不讓搜尋引擎收錄 -->
+  <meta name="robots" content="noindex, nofollow, noimageindex">
+
+  <!-- ↓ 傳連結（LINE、iMessage…）時顯示的預覽：網頁還沒執行前就要讀到，所以只能寫在這裡 -->
+  <title>100 days for Amy</title>
+  <meta name="description" content="有一封信要給妳，記得把聲音打開 ♡">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="子欣 & 逸哲 · Happy 100 Days">
+  <meta property="og:description" content="有一封信要給妳，記得把聲音打開 ♡">
+  <meta property="og:image" content="share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Huninn&family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
@@ -105,6 +128,8 @@
     </div>
 
     <div class="trail" id="trail" aria-hidden="true"></div>
+    <!-- 照片從信封冒出來時的小火花 -->
+    <div class="pop-fx" id="popFx" aria-hidden="true"></div>
   </div>
 
   <!-- 開場 -->
@@ -175,6 +200,11 @@
         </svg>
       </div>
       <p class="gate-hint" id="gateHint"></p>
+      <!-- 全部載好之前顯示進度；載好才換成「輕點開始」 -->
+      <div class="gate-load" id="gateLoad" aria-live="polite">
+        <div class="gate-bar"><i id="gateBarFill"></i></div>
+        <span class="gate-load-text" id="gateLoadText"></span>
+      </div>
       <span class="gate-btn" id="gateBtn"></span>
     </div>
   </div>

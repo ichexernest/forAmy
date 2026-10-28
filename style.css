@@ -216,6 +216,16 @@ button { font: inherit; color: inherit; }
   filter: drop-shadow(0 0 3px rgba(255, 170, 190, .9));
 }
 .seal-fx svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+.pop-fx { position: absolute; left: 50%; top: 50%; width: 0; height: 0; z-index: 30; }
+.pop-fx i {
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 20px;
+  height: 20px;
+  filter: drop-shadow(0 0 4px rgba(255, 140, 170, .95)) drop-shadow(0 0 1px rgba(200, 80, 110, .6));
+}
+.pop-fx svg { display: block; width: 100%; height: 100%; fill: currentColor; }
 .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
 /* ───────── 信紙 ───────── */
@@ -859,6 +869,43 @@ button { font: inherit; color: inherit; }
   animation: gatePulse 2s ease-in-out infinite;
 }
 @keyframes gatePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.gate-btn { visibility: hidden; opacity: 0; }
+/* 載入中：粉紅進度條 + 百分比，跟按鈕疊在同一個位置 */
+.gate-in { position: relative; }
+.gate-load {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 180px;
+}
+.gate-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(232, 120, 143, .16);
+  overflow: hidden;
+}
+.gate-bar i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f6a9b9, var(--rose));
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  transition: transform .35s ease-out;
+}
+.gate-load-text {
+  font-size: 13px;
+  letter-spacing: .12em;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ───────── 右上角聲音開關 ───────── */
 .sound-btn {

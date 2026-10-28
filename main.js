@@ -122,6 +122,15 @@
     $('#sealFx').appendChild(sp);
     return sp;
   });
+  // 每張照片冒出信封時噴出的小火花（跟封蠟彈開時同一種星光）
+  const POP_N = 6;
+  const popSparks = D.photos.map(() => Array.from({ length: POP_N }, (_, k) => {
+    const sp = document.createElement('i');
+    sp.innerHTML = SPARK;
+    sp.style.color = ['#fff2b8', '#ff9fb6', '#ffffff', '#ffc98a'][k % 4];
+    $('#popFx').appendChild(sp);
+    return sp;
+  }));
   const trailHearts = Array.from({ length: 12 }, (_, i) => {
     const h = document.createElement('i');
     h.innerHTML = HEART;
@@ -422,6 +431,19 @@
     // G｜照片一張一張彈出來
     photoEls.forEach((el, i) => {
       const ti = t + i * 0.22, p = G.pos[i];
+      // 照片探出信封口的那一刻，往上噴一小簇星光
+      const x0 = (i - (n - 1) / 2) * G.envW * 0.05, y0 = -G.envH * 0.5;
+      popSparks[i].forEach((sp, k) => {
+        // 往信封口的左右兩側斜斜噴開，圍在照片旁邊，不會蓋在照片上
+        const side = k % 2 ? -1 : 1, spread = Math.floor(k / 2) / (POP_N / 2);
+        const deg = 12 + spread * 46 + rand(-6, 6);
+        const ang = side > 0 ? (-deg * Math.PI) / 180 : (-(180 - deg) * Math.PI) / 180;
+        const r = G.envW * rand(0.26, 0.42);
+        const tk = ti + 0.12 + k * 0.012;
+        tl.fromTo(sp, { x: x0, y: y0, scale: 0, rotation: 0 },
+          { x: x0 + Math.cos(ang) * r, y: y0 + Math.sin(ang) * r, scale: rand(0.7, 1.2), rotation: rand(-90, 90), duration: 0.32, ease: 'power2.out' }, tk)
+          .to(sp, { scale: 0, duration: 0.22, ease: 'power1.in' }, tk + 0.3);
+      });
       tl.to(el, { y: G.yRise, duration: 0.45, ease: 'power2.out' }, ti)
         .set(el, { zIndex: 10 + i }, ti + 0.45)
         .to(el, { x: p.x, y: p.y, rotation: p.r, scale: p.s, duration: 0.85, ease: 'back.out(1.3)' }, ti + 0.45);
@@ -473,13 +495,15 @@
   }
 
   /* ───────── 待機時的輕輕漂浮 ───────── */
-  let bob;
+  let bob, introTl;
   function startBob() {
     if (reduce) return;
     bob && bob.kill();
     bob = gsap.to(scene, { y: -7, rotation: 0.5, duration: 1.9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
   }
   function stopBob() {
+    // 開場最後還在淡入的提示，如果她已經開始拆信就直接跑完，不然提示會在拆開後又跑出來
+    if (introTl && introTl.progress() < 1) introTl.progress(1);
     bob && bob.kill();
     bob = null;
     gsap.to(scene, { y: 0, rotation: 0, duration: 0.4, ease: 'power2.out', overwrite: 'auto' });
@@ -864,7 +888,7 @@
     gsap.set(introHeart, { xPercent: -50, yPercent: -50, y: -G.envH * 0.22, scale: 0 });
     gsap.set(introChars, { opacity: 0 });
 
-    const it = gsap.timeline({ delay: 0.15 });
+    const it = (introTl = gsap.timeline({ delay: 0.15 }));
     it.fromTo('#bg', { opacity: 0 }, { opacity: 1, duration: 0.7, ease: 'power1.out' }, 0)
       .fromTo(introHeart, { scale: 0, rotation: -25 }, { scale: 1, rotation: 0, duration: 0.6, ease: 'back.out(3)' }, 0.1)
       .to(introHeart, { scale: 1.16, duration: 0.13, yoyo: true, repeat: 3, ease: 'power1.inOut' }, 0.68)
@@ -929,7 +953,6 @@
   const bgm = $('#bgm'), soundBtn = $('#soundBtn'), gate = $('#gate');
   const hasMusic = !!M.file;
   let userMuted = false, resumeOnShow = false;
-  if (hasMusic) bgm.src = encodeURI(M.file);
   setText('#gateHint', M.soundHint);
   setText('#gateBtn', M.start);
 
@@ -965,19 +988,62 @@
   gsap.set('.it-spark', { scale: 0 });
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  // 把整個網站會出現的字一次載好：Google 的中文字型是「用到哪些字才下載哪些字」，
-  // 先載好就不會捲到一半字型才到、版面重算跳一下
+  /* ───────── 載入：音樂、字型、照片全部好了才讓她開始 ───────── */
+  const prog = { audio: hasMusic ? 0 : 1, fonts: 0, images: 0 };
+  const barFill = $('#gateBarFill'), loadText = $('#gateLoadText');
+  const loadingLabel = M.loading || '準備中';
+  function showProgress() {
+    // 音樂檔最大，佔進度條大部分
+    const p = hasMusic ? prog.audio * 0.75 + prog.fonts * 0.12 + prog.images * 0.13 : prog.fonts * 0.5 + prog.images * 0.5;
+    barFill.style.transform = `scaleX(${clamp(0, 1, p)})`;
+    loadText.textContent = `${loadingLabel} ${Math.floor(clamp(0, 1, p) * 100)}%`;
+  }
+  showProgress();
+
+  // 字型：Google 的中文字型是「用到哪些字才下載哪些字」，把整個網站會出現的字一次載好，
+  // 就不會捲到一半字型才到、版面重算跳一下
   const allText = JSON.stringify(D);
   const fontJobs = ['400 17px "LXGW WenKai TC"', '700 17px "LXGW WenKai TC"', '400 20px "Huninn"', '700 40px "Caveat"', '500 20px "Caveat"']
     .map((f) => document.fonts.load(f, allText).catch(() => {}));
-  const fontsAll = Promise.race([Promise.all(fontJobs).then(() => document.fonts.ready), wait(4000)]);
-  const gateFonts = Promise.race([document.fonts.load('400 24px "Huninn"', (M.soundHint || '') + (M.start || '')).catch(() => {}), wait(1200)]);
+  let fontsLoaded = 0;
+  fontJobs.forEach((j) => j.then(() => { prog.fonts = ++fontsLoaded / fontJobs.length; showProgress(); }));
+  const fontsDone = Promise.all(fontJobs).then(() => document.fonts.ready);
+  const gateFonts = Promise.race([document.fonts.load('400 24px "Huninn"', (M.soundHint || '') + (M.start || '') + loadingLabel + '0123456789%').catch(() => {}), wait(1200)]);
 
-  // 卡片縮圖先解碼好，照片彈出來時不會頓一下
-  const decodeThumbs = () => photoEls.forEach((el) => {
+  // 照片：卡片縮圖先下載＋解碼好，照片彈出來時不會頓一下
+  let imgsLoaded = 0;
+  const imagesDone = Promise.all(photoEls.map((el) => {
     const im = el.querySelector('img');
-    if (im && im.decode) im.decode().catch(() => {});
-  });
+    const done = im && im.decode ? im.decode().catch(() => {}) : Promise.resolve();
+    return done.then(() => { prog.images = ++imgsLoaded / photoEls.length; showProgress(); });
+  }));
+
+  // 音樂：iPhone 在使用者點之前不會預先下載音樂，所以自己先把整首抓下來，
+  // 點下去馬上就能播，播到一半也不會因為網路卡住
+  async function loadAudio() {
+    if (!hasMusic) return;
+    try {
+      const res = await fetch(encodeURI(M.file));
+      if (!res.ok || !res.body) throw new Error('fetch');
+      const total = Number(res.headers.get('content-length')) || 0;
+      const reader = res.body.getReader();
+      const chunks = [];
+      let got = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        got += value.length;
+        if (total) { prog.audio = got / total; showProgress(); }
+      }
+      bgm.src = URL.createObjectURL(new Blob(chunks, { type: 'audio/mpeg' }));
+    } catch (err) {
+      bgm.src = encodeURI(M.file);   // 抓不下來就改成邊下載邊播
+    }
+    bgm.load();
+    prog.audio = 1;
+    showProgress();
+  }
 
   function watchFonts() {
     let lastPcH = pc.offsetHeight, fT;
@@ -993,29 +1059,50 @@
     });
   }
 
-  const ready = fontsAll.then(() => {
+  // 全部好了才開放開始；萬一某個檔案一直卡住，40 秒後還是讓她進去，不會永遠卡在這裡
+  let loaded = false;
+  const ready = Promise.race([Promise.all([fontsDone, imagesDone, loadAudio()]), wait(40000)]).then(() => {
     build();
     openTl = buildOpen();
-    decodeThumbs();
     watchFonts();
+    loaded = true;
+    prog.audio = prog.fonts = prog.images = 1;
+    showProgress();
   });
 
   ambient();
-  if (!hasMusic) { gate.hidden = true; ready.then(intro); }
-  else {
-    // 先提醒打開聲音；點一下＝開始播音樂（iPhone 規定要使用者先點過）＋開始開場動畫
+  if (!hasMusic) {
+    // 沒有音樂：不用提醒聲音，載好就直接開始
+    $('.gate-icon').hidden = true;
+    $('#gateHint').hidden = true;
     gateFonts.then(() => gsap.fromTo('.gate-in', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }));
+    ready.then(() => {
+      gsap.to(gate, { opacity: 0, duration: 0.6, delay: 0.3, onComplete: () => { gate.hidden = true; } });
+      gsap.delayedCall(0.5, intro);
+    });
+  } else {
+    gateFonts.then(() => gsap.fromTo('.gate-in', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }));
+    // 載好：進度條收起來，換成「開始」按鈕彈出來
+    ready.then(() => {
+      gsap.to('#gateLoad', { autoAlpha: 0, y: 6, duration: 0.3, delay: 0.25 });
+      gsap.fromTo('#gateBtn', { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.55, delay: 0.4, ease: 'back.out(2.4)' });
+      gate.setAttribute('aria-label', M.start || '開始');
+    });
+    gate.setAttribute('aria-label', loadingLabel);
     let started = false;
     const go = () => {
+      if (!loaded) {
+        // 還沒好：輕輕晃一下進度條告訴她「等一下下」，不開始
+        gsap.fromTo('#gateLoad', { x: 0 }, { keyframes: { x: [0, -6, 6, -4, 4, 0] }, duration: 0.4, ease: 'none', overwrite: true });
+        return;
+      }
       if (started) return;
       started = true;
       playMusic();   // 一定要在點擊當下呼叫，iPhone 才會讓它出聲
-      ready.then(() => {
-        gsap.to('.gate-in', { scale: 0.92, opacity: 0, duration: 0.4, ease: 'power2.in' });
-        gsap.to(gate, { opacity: 0, duration: 0.6, delay: 0.15, ease: 'power1.inOut', onComplete: () => { gate.hidden = true; } });
-        gsap.to(soundBtn, { autoAlpha: 1, duration: 0.5, delay: 2.8 });
-        gsap.delayedCall(0.35, intro);
-      });
+      gsap.to('.gate-in', { scale: 0.92, opacity: 0, duration: 0.4, ease: 'power2.in' });
+      gsap.to(gate, { opacity: 0, duration: 0.6, delay: 0.15, ease: 'power1.inOut', onComplete: () => { gate.hidden = true; } });
+      gsap.to(soundBtn, { autoAlpha: 1, duration: 0.5, delay: 2.8 });
+      gsap.delayedCall(0.35, intro);
     };
     gate.addEventListener('click', go);
     gate.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });

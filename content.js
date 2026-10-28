@@ -30,7 +30,7 @@ window.LOVE = {
   /* ─── ③ 摺起來的信紙背面（剛抽出來還沒攤開時看到的） ── */
   cover: {
     to: '給 最可愛的子欣',
-    from: 'from ICHE',
+    from: '',
   },
 
   /* ─── ④ 信的內容 ─────────────────────────────────── */
@@ -142,6 +142,7 @@ window.LOVE = {
     file: 'The Black Skirts - EVERYTHING - The Worst Taste.mp3',
     soundHint: '記得把聲音打開喔 ♪',   // 最開頭的提醒
     start: '開始',                // 提醒下面的按鈕
+    loading: '準備中',                // 網路慢時，按鈕出現前顯示的字（後面會自動加上百分比）
     volume: 0.7,                      // 0～1（iPhone 會用手機本身的音量，這個設定只對電腦有效）
   },
 };
