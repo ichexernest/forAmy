@@ -171,6 +171,13 @@
     </div>
     <div class="ending" id="ending">
       <h2 class="end-title" id="endTitle"></h2>
+      <p class="end-sub" id="endSub"></p>
+      <p class="end-hint" id="endHint"></p>
+    </div>
+    <!-- 第三區：我們的時間（照片區之後，隔一段空白再出現） -->
+    <section class="finale" id="finale" aria-label="我們的時間">
+      <div class="fn-since" id="fnSince"></div>
+      <p class="fn-note" id="fnNote"></p>
       <!-- 在一起計時器 -->
       <div class="together" id="together" role="timer" aria-live="off">
         <div class="tg-day">
@@ -183,24 +190,22 @@
           <span class="odo" id="tgS"></span><small id="tgSL"></small>
         </div>
       </div>
-      <p class="end-sub" id="endSub"></p>
-      <p class="end-hint" id="endHint"></p>
-    </div>
-    <!-- 結尾的兩個按鈕 -->
-    <div class="end-actions" id="endActions">
-      <!-- 點了用 FaceTime 打給你（號碼在 content.js 的 call 設定） -->
-      <a class="call-btn" id="callBtn" href="#">
-        <span class="call-ring" id="callRing" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M6.6 3.2c.6-.5 1.5-.4 2 .2l2 2.6c.4.6.4 1.4-.1 1.9l-1.2 1.3c.9 1.9 2.5 3.5 4.4 4.4l1.3-1.2c.5-.5 1.3-.5 1.9-.1l2.6 2c.6.5.7 1.4.2 2l-1.2 1.5c-.8 1-2.2 1.4-3.4.9C10.4 17 7 13.6 5.3 8.9c-.5-1.2-.1-2.6.9-3.4z"/></svg>
-        </span>
-        <span id="callBtnText"></span>
-        <span class="call-fx" id="callFx" aria-hidden="true"></span>
-      </a>
-      <button class="replay" id="replay" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg>
-        <span id="replayText"></span>
-      </button>
-    </div>
+      <!-- 打給我＋把信收回去 -->
+      <div class="end-actions" id="endActions">
+        <!-- 點了用 FaceTime 打給你（號碼在 content.js 的 call 設定） -->
+        <a class="call-btn" id="callBtn" href="#">
+          <span class="call-ring" id="callRing" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M6.6 3.2c.6-.5 1.5-.4 2 .2l2 2.6c.4.6.4 1.4-.1 1.9l-1.2 1.3c.9 1.9 2.5 3.5 4.4 4.4l1.3-1.2c.5-.5 1.3-.5 1.9-.1l2.6 2c.6.5.7 1.4.2 2l-1.2 1.5c-.8 1-2.2 1.4-3.4.9C10.4 17 7 13.6 5.3 8.9c-.5-1.2-.1-2.6.9-3.4z"/></svg>
+          </span>
+          <span id="callBtnText"></span>
+          <span class="call-fx" id="callFx" aria-hidden="true"></span>
+        </a>
+        <button class="replay" id="replay" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg>
+          <span id="replayText"></span>
+        </button>
+      </div>
+    </section>
   </div>
 
   <!-- 背景音樂 -->

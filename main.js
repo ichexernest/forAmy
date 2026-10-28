@@ -250,11 +250,17 @@
     });
     // 照片超出一個畫面時，最後整頁往上捲這麼多（留出最下面按鈕的位置）
     const boardBottom = Math.max(...pos.map((p) => p.bottom));
-    const pan = Math.max(0, boardBottom - (vh - 72 - sa.bottom));
+    // ① 照片放不進一個畫面時，要往上捲多少才看得到最下面那排
+    const pan = Math.max(0, boardBottom - (vh - 28 - sa.bottom));
+    // ② 第三區（我們的時間）接在照片後面，中間留一段空白喘口氣；最後整頁捲到它在畫面正中間
+    const finH = $('#finale').offsetHeight;
+    const finGap = Math.max(vh * 0.22, 140);
+    const finTop0 = boardBottom + finGap;
+    const panEnd = Math.max(pan + 1, finTop0 + finH / 2 - vh / 2 + (sa.top - sa.bottom) / 2);
     const sp = Math.min((0.42 * envW) / pw, (0.6 * envH) / ph);
 
     return {
-      vw, vh, mobile, envW, envH, W, H, s, pw, ph, sp, pos, pan,
+      vw, vh, mobile, envW, envH, W, H, s, pw, ph, sp, pos, pan, panEnd, finTop0,
       peekPx,
       peekPct: (-peekPx / H) * 100,
       dEnv,
@@ -360,6 +366,7 @@
     gsap.set(trailHearts, { x: 0, y: 0, scale: 0, opacity: 1 });
     gsap.set(bgWarm, { opacity: 0 });
     gsap.set('#ending', { y: 0 });
+    gsap.set('#finale', { y: G.finTop0, autoAlpha: 0 });
     const n = photoEls.length;
     photoEls.forEach((el, i) => {
       el.classList.remove('lifted');
@@ -468,22 +475,35 @@
     tl.fromTo([together, endSub, endHint], { autoAlpha: 0, y: 14 },
       { autoAlpha: 1, y: 0, stagger: 0.12, duration: 0.4, ease: 'power2.out' }, tDone - 0.75);
 
-    // I｜照片放不進一個畫面時（手機），繼續往下滑 → 整頁連同標題往上捲，看到最下面那排
-    let tReplay = tDone + 0.24;
-    if (G.pan > 0) {
-      const tp = tDone + 0.3, dur = (G.pan / G.unit) * 1.25;
-      photoEls.forEach((el, i) => tl.to(el, { y: G.pos[i].y - G.pan, duration: dur, ease: 'none' }, tp));
-      tl.to('#ending', { y: -G.pan, duration: dur, ease: 'none' }, tp);
-      tReplay = tp + dur - 0.15;   // 捲到底、最下面那排露出來之後才出現，不會壓在照片上
+    // I｜照片看完繼續往下滑：標題、照片、第三區像同一張長紙一起往上捲
+    //    （手機上先捲到看得到最下面那排照片，再捲到第三區在正中間）
+    const panDur = (px) => (px / G.unit) * 1.25;
+    const tp = tDone + 0.3, d1 = panDur(G.pan), d2 = panDur(G.panEnd - G.pan);
+    const fin = $('#finale');
+    if (d1 > 0) {
+      photoEls.forEach((el, i) => tl.to(el, { y: G.pos[i].y - G.pan, duration: d1, ease: 'none' }, tp));
+      tl.to('#ending', { y: -G.pan, duration: d1, ease: 'none' }, tp)
+        .to(fin, { y: G.finTop0 - G.pan, duration: d1, ease: 'none' }, tp);
     }
-    tl.fromTo(endActions, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power2.out' }, tReplay);
+    const tp2 = tp + d1;
+    photoEls.forEach((el, i) => tl.to(el, { y: G.pos[i].y - G.panEnd, duration: d2, ease: 'none' }, tp2));
+    tl.to('#ending', { y: -G.panEnd, duration: d2, ease: 'none' }, tp2)
+      .to(fin, { y: G.finTop0 - G.panEnd, duration: d2, ease: 'none' }, tp2)
+      .fromTo(fin, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, tp)
+      .to(ENV, { y: G.envAway, duration: d2 * 0.6, ease: 'power1.in' }, tp2);   // 露在下面的信封沉下去，不跟第三區擠
+    // 第三區捲進來時，裡面的東西一個個輕輕浮上來
+    tl.fromTo(fin.children, { opacity: 0, y: 26, scale: 0.96 },
+      { opacity: 1, y: 0, scale: 1, duration: d2 * 0.45, stagger: d2 * 0.08, ease: 'power2.out' }, tp2 + d2 * 0.3);
+    const kPhotosAll = tp2, kFinale = tp2 + d2;
     tl.to({}, { duration: 0.35 });
 
     state.photosDone = tDone;
     // 放開手時會自動滑到最近的關鍵畫面：信抽出來、信紙到正中間、攤開、讀完、信封回來、照片落定、最後
     // （讀信那段可以停在任何地方，不吸附）
-    const kOut = 1.2, kCenter = 2.2, kEnd = tl.duration();
-    state.snapSegs = [[kOut, kCenter], [kCenter, kRead], [kReadEnd, kEnvBack], [kEnvBack, tDone], [tDone, kEnd]];
+    const kOut = 1.2, kCenter = 2.2;
+    state.snapSegs = [[kOut, kCenter], [kCenter, kRead], [kReadEnd, kEnvBack], [kEnvBack, tDone]];
+    if (d1 > 0) state.snapSegs.push([tDone, kPhotosAll]);
+    state.snapSegs.push([kPhotosAll, kFinale]);
     state.snapFirst = kOut;
     state.popRange = [kEnvBack, tDone];
     scroller.style.height = tl.duration() * G.unit + G.vh + 'px';
@@ -708,7 +728,7 @@
     const q = gsap.timeline();
 
     // ① 結尾的字淡掉、背景暖色退回、信封升回畫面中間
-    q.to(['#ending', endActions, hintMore], { autoAlpha: 0, duration: 0.5, ease: 'power1.out' }, 0)
+    q.to(['#ending', '#finale', hintMore], { autoAlpha: 0, duration: 0.5, ease: 'power1.out' }, 0)
       .to(bgWarm, { opacity: 0, duration: 1.8, ease: 'sine.inOut' }, 0)
       .to(ENV, { y: 0, scale: 1, rotation: 0, duration: 0.9, ease: 'power3.inOut' }, 0.1);
 
@@ -1034,6 +1054,13 @@
   setText('#tgHL', TG.hours);
   setText('#tgML', TG.minutes);
   setText('#tgSL', TG.seconds);
+  // 第三區最上面那行：開始在一起的日期時間（照台灣時間顯示）
+  {
+    const f = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+    const p = Object.fromEntries(f.formatToParts(new Date(since)).map((x) => [x.type, x.value]));
+    setText('#fnSince', `${p.year}.${p.month}.${p.day} · ${p.hour}:${p.minute}`);
+  }
+  setText('#fnNote', TG.note);
 
   function makeOdo(el) { return { el, slots: [] }; }
   // 把一串字放進里程表：只有變了的那一位會捲動
