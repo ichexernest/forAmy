@@ -176,8 +176,9 @@
     </div>
     <!-- 第三區：滿版慢慢飄的雲（在數字和按鈕後面） -->
     <div class="clouds" id="clouds" aria-hidden="true"></div>
-    <!-- 第三區：我們的時間＋打給我 -->
+    <!-- 第三區：我們已經在一起＋打給我 -->
     <section class="finale" id="finale" aria-label="我們在一起的時間">
+      <p class="fn-title" id="fnTitle"></p>
       <div class="fn-days" role="timer" aria-live="off">
         <span class="odo" id="tgDay"></span><span class="fn-unit" id="tgDayL"></span>
       </div>
@@ -186,28 +187,18 @@
         <span class="odo" id="tgM"></span><span class="fn-u" id="tgML"></span>
         <span class="odo" id="tgS"></span><span class="fn-u" id="tgSL"></span>
       </div>
-      <!-- 雲朵按鈕：點了用 FaceTime 打給你（號碼在 content.js 的 call 設定） -->
-      <a class="cloud-btn" id="callBtn" href="#">
-        <span class="cb-float" id="cbFloat">
-        <svg class="cb-cloud" viewBox="0 0 190 110" aria-hidden="true">
-          <defs>
-            <linearGradient id="cbFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#ffffff"/>
-              <stop offset="1" stop-color="#ffe6ec"/>
-            </linearGradient>
-          </defs>
-          <path class="cb-body" d="M46 96C22 96 10 80 14 64C18 48 34 42 46 46C50 24 70 12 92 16C110 19 122 32 126 46C134 36 152 34 164 44C178 56 176 76 164 86C158 92 150 96 140 96Z" fill="url(#cbFill)"/>
-          <path class="cb-shine" d="M60 40C66 30 78 25 90 27"/>
-        </svg>
-        <span class="cb-label">
-          <span class="call-ring" id="callRing" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M6.6 3.2c.6-.5 1.5-.4 2 .2l2 2.6c.4.6.4 1.4-.1 1.9l-1.2 1.3c.9 1.9 2.5 3.5 4.4 4.4l1.3-1.2c.5-.5 1.3-.5 1.9-.1l2.6 2c.6.5.7 1.4.2 2l-1.2 1.5c-.8 1-2.2 1.4-3.4.9C10.4 17 7 13.6 5.3 8.9c-.5-1.2-.1-2.6.9-3.4z"/></svg>
+      <!-- 被雲包圍的 FaceTime 按鈕：後面一層雲、按鈕、前面一層雲 -->
+      <div class="ft-nest" id="ftNest">
+        <div class="ft-layer ft-back" id="ftBack" aria-hidden="true"></div>
+        <a class="ft-btn" id="callBtn" href="#">
+          <span class="ft-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2.6"/><path d="M15.6 10.6l4.2-2.7c.5-.3 1.2.1 1.2.7v6.8c0 .6-.7 1-1.2.7l-4.2-2.7z"/></svg>
           </span>
-          <span id="callBtnText"></span>
-        </span>
-        </span>
+          <span class="ft-text" id="callBtnText"></span>
+        </a>
+        <div class="ft-layer ft-front" id="ftFront" aria-hidden="true"></div>
         <span class="call-fx" id="callFx" aria-hidden="true"></span>
-      </a>
+      </div>
     </section>
     <!-- 最底下：把信收回去 -->
     <div class="replay-wrap" id="replayWrap">

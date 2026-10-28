@@ -495,7 +495,8 @@
     // 第三區捲進來時，裡面的東西一個個輕輕浮上來
     tl.fromTo(fin.children, { opacity: 0, y: 26, scale: 0.96 },
       { opacity: 1, y: 0, scale: 1, duration: d2 * 0.45, stagger: d2 * 0.08, ease: 'power2.out' }, tp2 + d2 * 0.3);
-    // 滿版的雲跟著這一頁浮上來；最後才出現最底下的「把信收回去」
+    // 按鈕四周的雲從兩側飄過來圍住按鈕；背景的雲跟著這一頁浮上來；最後才出現最底下的「把信收回去」
+    nestEnter(tl, tp2 + d2 * 0.45, d2 * 0.5);
     tl.fromTo(cloudsEl, { autoAlpha: 0, y: 60 }, { autoAlpha: 1, y: 0, duration: d2 * 0.75, ease: 'power2.out' }, tp2 + d2 * 0.25)
       .fromTo(replayWrap, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.3, ease: 'power2.out' }, tp2 + d2 - 0.2);
     const kPhotosAll = tp2, kFinale = tp2 + d2;
@@ -1049,10 +1050,10 @@
   if (location.search.includes('debug')) window.__dbg = { get openTl() { return openTl; }, get tl() { return tl; }, get st() { return st; }, lenis, state };
 
   /* ───────── 在一起計時器 ─────────
-     天數跟照片上的 Day 一樣算法（開始那天是第 1 天），
-     下面是從那一刻起累積的小時／分／秒，像里程表一樣一格一格往上捲 */
+     從開始那一刻到現在實際經過了幾天、幾小時、幾分、幾秒，數字換的時候像里程表一樣往上捲 */
   const TG = D.together || {};
   const since = new Date(TG.since || '2026-07-24T19:00:00+08:00').getTime();
+  setText('#fnTitle', TG.title);
   setText('#tgDayL', TG.days);
   setText('#tgHL', TG.hours);
   setText('#tgML', TG.minutes);
@@ -1094,13 +1095,14 @@
   const fnDays = $('.fn-days');
   function tickTogether(animate) {
     const diff = Math.max(0, Date.now() - since);
-    const day = Math.floor(diff / 864e5) + 1;
-    const hours = Math.floor(diff / 36e5), mins = Math.floor(diff / 6e4) % 60, secs = Math.floor(diff / 1e3) % 60;
+    // 實際經過了幾天又幾小時又幾分幾秒
+    const day = Math.floor(diff / 864e5);
+    const hours = Math.floor(diff / 36e5) % 24, mins = Math.floor(diff / 6e4) % 60, secs = Math.floor(diff / 1e3) % 60;
     setOdo(odoDay, String(day), animate);
-    setOdo(odoH, hours.toLocaleString('en-US'), animate);
+    setOdo(odoH, String(hours), animate);
     setOdo(odoM, String(mins).padStart(2, '0'), animate);
     setOdo(odoS, String(secs).padStart(2, '0'), animate);
-    fnDays.setAttribute('aria-label', `${day} ${TG.days || ''}, ${hours} ${TG.hours || ''}`);
+    fnDays.setAttribute('aria-label', `${TG.title || ''} ${day}${TG.days || ''} ${hours}${TG.hours || ''} ${mins}${TG.minutes || ''}`);
   }
   tickTogether(false);
   // 對齊到每一秒的開頭再跳，秒數才準
@@ -1122,78 +1124,85 @@
     callBtn.href = (CALL.type === 'audio' ? 'facetime-audio:' : 'facetime:') + callTo;
     setText('#callBtnText', CALL.button);
   } else {
-    callBtn.remove();
+    $('#ftNest').remove();   // 沒有按鈕時，那一圈雲也一起拿掉
   }
-  // 電話平常每隔幾秒「鈴鈴」晃一下
-  const ring = $('#callRing');
-  if (ring && callBtn.isConnected && !reduce) {
-    gsap.timeline({ repeat: -1, repeatDelay: 2.8, delay: 1 })
-      .to(ring, { keyframes: { rotation: [0, -16, 14, -12, 10, -6, 4, 0] }, duration: 0.7, ease: 'none', transformOrigin: '50% 60%' });
+  /* ───────── 黏土風的雲 ─────────
+     每朵雲用 5～7 顆圓疊出來，每顆圓都有自己的亮面（左上）和粉紫色陰影（右下），
+     底下一條圓角長條讓雲底比較平，再墊一圈很淡的影子 */
+  let cloudUid = 0;
+  const PUFF_SETS = [
+    [[48, 72, 26], [80, 52, 36], [118, 50, 32], [148, 68, 26], [100, 74, 30], [70, 82, 22], [132, 84, 20]],
+    [[44, 74, 22], [72, 56, 30], [104, 44, 36], [138, 58, 28], [160, 76, 20], [96, 80, 28]],
+    [[56, 70, 28], [92, 50, 34], [128, 62, 30], [80, 82, 24], [116, 84, 22]],
+  ];
+  function cloudSVG(set, tint, flip) {
+    const id = 'cg' + ++cloudUid;
+    const puffs = [...PUFF_SETS[set % PUFF_SETS.length]].sort((a, b) => a[1] - b[1]);   // 上面的先畫，下面的疊在前面
+    const minX = Math.min(...puffs.map((p) => p[0] - p[2])), maxX = Math.max(...puffs.map((p) => p[0] + p[2]));
+    return `<svg viewBox="0 0 200 120"${flip ? ' style="transform:scaleX(-1)"' : ''}><defs>` +
+      `<radialGradient id="${id}" cx="36%" cy="24%" r="84%"><stop offset="0" stop-color="#ffffff"/><stop offset=".58" stop-color="#fff5f8"/><stop offset="1" stop-color="${tint}"/></radialGradient>` +
+      `<filter id="${id}s" x="-20%" y="-80%" width="140%" height="260%"><feGaussianBlur stdDeviation="5"/></filter></defs>` +
+      `<ellipse cx="${(minX + maxX) / 2}" cy="109" rx="${(maxX - minX) / 2.3}" ry="6" fill="#c86e87" opacity=".2" filter="url(#${id}s)"/>` +
+      `<rect x="${minX + 12}" y="80" width="${maxX - minX - 24}" height="26" rx="13" fill="url(#${id})"/>` +
+      puffs.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#${id})"/>`).join('') +
+      '</svg>';
+  }
+  function makeCloud(parent, { left, top, width, set, tint, flip, opacity = 1 }) {
+    const cl = document.createElement('div');
+    cl.className = 'cl';
+    Object.assign(cl.style, { left: left + 'px', top: top + 'px', width: width + 'px', opacity });
+    cl.innerHTML = `<span class="cl-in">${cloudSVG(set, tint, flip)}</span>`;
+    parent.appendChild(cl);
+    return cl;
   }
 
-  /* 滿版的雲：七朵大小不一的雲慢慢從左飄到右（越遠越小、越淡、越慢、有一點點模糊）
-     視窗大小改變時重新排一次（build 會呼叫） */
-  const CLOUD_D = 'M46 96C22 96 10 80 14 64C18 48 34 42 46 46C50 24 70 12 92 16C110 19 122 32 126 46C134 36 152 34 164 44C178 56 176 76 164 86C158 92 150 96 140 96Z';
-  //               高度位置  寬度(畫面寬)  透明度  顏色        飄過去要幾秒
-  const CLOUD_SPECS = [
-    [0.07, 0.56, 0.62, '#ffffff', 92],
-    [0.2, 0.3, 0.4, '#ffeef2', 128],
-    [0.33, 0.72, 0.36, '#ffffff', 84],
-    [0.47, 0.24, 0.3, '#fff5f7', 150],
-    [0.62, 0.48, 0.52, '#fff5f7', 104],
-    [0.76, 0.82, 0.62, '#ffffff', 72],
-    [0.9, 0.4, 0.46, '#ffeef2', 116],
-  ];
-  let cloudTweens = [];
+  // 按鈕四周的雲（後面三朵、前面兩朵擋住按鈕下面兩個角）＋背景遠處慢慢飄的雲
+  const PINK = '#f2cbd8', LILAC = '#e2d3f0';
+  const ftBack = $('#ftBack'), ftFront = $('#ftFront'), ftNest = $('#ftNest');
+  let cloudTweens = [], nestClouds = [];
   function initClouds() {
     cloudTweens.forEach((t) => t.kill());
     cloudTweens = [];
-    cloudsEl.textContent = '';
-    const vw = innerWidth, vh = G ? G.vh : innerHeight, boost = G && G.mobile ? 1.35 : 1;
-    CLOUD_SPECS.forEach(([top, wr, op, color, dur], i) => {
-      const w = Math.max(150, vw * wr * boost);
-      const cl = document.createElement('div');
-      cl.className = 'cl';
-      Object.assign(cl.style, { width: w + 'px', top: top * vh - w * 0.29 + 'px', color, opacity: op });
-      if (op < 0.42) cl.style.filter = 'blur(2px)';
-      cl.innerHTML = `<span class="cl-in"><svg viewBox="0 0 190 110"><path d="${CLOUD_D}"/></svg></span>`;
-      cloudsEl.appendChild(cl);
-      const drift = gsap.fromTo(cl, { x: -w }, { x: vw, duration: dur * (reduce ? 3 : 1), ease: 'none', repeat: -1 });
-      drift.progress((i * 0.37 + 0.1) % 1);
-      cloudTweens.push(drift);
-      if (!reduce) cloudTweens.push(gsap.to(cl.firstChild, { y: rand(-18, -8), duration: rand(4, 7), ease: 'sine.inOut', yoyo: true, repeat: -1 }));
+    nestClouds = [];
+    [cloudsEl, ftBack, ftFront].forEach((el) => { if (el) el.textContent = ''; });
+    const hasNest = ftNest && ftNest.isConnected;
+    const W = hasNest ? ftNest.offsetWidth : 0, H = hasNest ? ftNest.offsetHeight : 0;
+    // [圖層, 左, 上, 寬（佔按鈕區寬度）, 雲的樣子, 陰影色, 翻面, 從哪個方向飄進來]
+    const NEST = [
+      [ftBack, -0.1, 0.16, 0.6, 0, PINK, false, [-1, 0.2]],
+      [ftBack, 0.5, 0.04, 0.58, 1, LILAC, false, [1, 0.1]],
+      [ftBack, 0.31, -0.16, 0.36, 2, PINK, true, [0, -1]],
+      [ftFront, -0.02, 0.42, 0.44, 2, LILAC, false, [-1, 0.6]],
+      [ftFront, 0.58, 0.38, 0.44, 0, PINK, true, [1, 0.6]],
+    ];
+    if (hasNest) NEST.forEach(([layer, l, t, w, set, tint, flip, from]) => {
+      const el = makeCloud(layer, { left: l * W, top: t * H, width: w * W, set, tint, flip });
+      nestClouds.push({ el, from, dir: l + w / 2 < 0.5 ? -1 : 1 });
+      if (!reduce) cloudTweens.push(gsap.to(el.firstChild, { y: -rand(4, 9), duration: rand(2.6, 4.2), ease: 'sine.inOut', yoyo: true, repeat: -1, delay: -rand(0, 3) }));
     });
-  }
-  // 按下打電話時，雲輕輕往兩邊散開，再慢慢飄回來
-  function partClouds() {
-    [...cloudsEl.children].forEach((cl) => {
-      const r = cl.getBoundingClientRect(), side = r.left + r.width / 2 < innerWidth / 2 ? -1 : 1;
-      gsap.to(cl.firstChild, {
-        keyframes: [
-          { x: side * rand(40, 80), duration: 1.3, ease: 'power2.out' },
-          { x: 0, duration: 4, ease: 'sine.inOut', delay: 0.6 },
-        ],
-        overwrite: 'auto',
+    // 背景遠處的雲：比較淡、慢慢從左飄到右
+    const vw = innerWidth, vh = G ? G.vh : innerHeight;
+    [[0.1, 0.42, 0.55, 1, LILAC, 120], [0.3, 0.3, 0.45, 2, PINK, 150], [0.74, 0.5, 0.6, 0, PINK, 105], [0.9, 0.34, 0.5, 1, LILAC, 135]]
+      .forEach(([top, wr, op, set, tint, dur], i) => {
+        const w = Math.max(140, vw * wr * (G && G.mobile ? 1.3 : 1));
+        const el = makeCloud(cloudsEl, { left: 0, top: top * vh - w * 0.3, width: w, set, tint, flip: i % 2 === 1, opacity: op });
+        const drift = gsap.fromTo(el, { x: -w }, { x: vw, duration: dur * (reduce ? 3 : 1), ease: 'none', repeat: -1 });
+        drift.progress((i * 0.31 + 0.15) % 1);
+        cloudTweens.push(drift);
       });
+  }
+  // 捲進最後一頁時：按鈕四周的雲從兩側飄過來把按鈕圍住（給捲動時間軸用）
+  function nestEnter(tl, at, dur) {
+    nestClouds.forEach(({ el, from }, k) => {
+      tl.fromTo(el, { x: from[0] * 130, y: from[1] * 60, opacity: 0 },
+        { x: 0, y: 0, opacity: 1, duration: dur, ease: 'power3.out' }, at + k * dur * 0.08);
     });
   }
 
-  // 雲朵按鈕：平常輕輕浮著、像在呼吸；按下去被壓扁一下再彈回來，噗地散出小雲霧、飄起小愛心
+  // FaceTime 按鈕：按下去輕輕壓一下，周圍的雲往外鼓開再慢慢回來，飄起幾顆小愛心
   if (callBtn.isConnected) {
-    const cbFloat = $('#cbFloat'), cbCloud = $('.cb-cloud'), callFx = $('#callFx');
-    if (!reduce) {
-      gsap.to(cbFloat, { y: -6, duration: 2.4, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-      gsap.to(cbCloud, { scale: 1.025, duration: 1.8, ease: 'sine.inOut', yoyo: true, repeat: -1, transformOrigin: '50% 62%' });
-    }
-    const puffs = Array.from({ length: 10 }, () => {
-      const p = document.createElement('i');
-      p.className = 'puff';
-      const sz = rand(14, 30);
-      Object.assign(p.style, { width: sz + 'px', height: sz + 'px', left: -sz / 2 + 'px', top: -sz / 2 + 'px' });
-      callFx.appendChild(p);
-      gsap.set(p, { scale: 0, opacity: 0 });
-      return p;
-    });
+    gsap.set(callBtn, { xPercent: -50, yPercent: -50 });
+    const callFx = $('#callFx');
     const hearts = Array.from({ length: 6 }, (_, k) => {
       const h = document.createElement('i');
       h.className = 'heart';
@@ -1204,22 +1213,25 @@
       return h;
     });
     callBtn.addEventListener('click', () => {
-      const bw = callBtn.offsetWidth;
-      gsap.fromTo(cbFloat, { scaleX: 1.08, scaleY: 0.86 }, { scaleX: 1, scaleY: 1, duration: 0.8, ease: 'elastic.out(1, .38)', transformOrigin: '50% 72%' });
-      puffs.forEach((p, k) => {
-        const ang = (k / puffs.length) * Math.PI * 2 + rand(-0.2, 0.2), r0 = bw * 0.3, r1 = bw * rand(0.5, 0.68);
-        gsap.fromTo(p, { x: Math.cos(ang) * r0, y: Math.sin(ang) * r0 * 0.5, scale: 0.4, opacity: 0.95 },
-          { x: Math.cos(ang) * r1, y: Math.sin(ang) * r1 * 0.56, scale: 1, opacity: 0, duration: 1, ease: 'power2.out' });
+      gsap.fromTo(callBtn, { scale: 0.93 }, { scale: 1, duration: 0.7, ease: 'elastic.out(1, .45)', overwrite: 'auto' });
+      nestClouds.forEach(({ el, dir }) => {
+        gsap.to(el.firstChild, {
+          keyframes: [
+            { x: dir * rand(14, 24), scale: 1.05, duration: 0.45, ease: 'power2.out' },
+            { x: 0, scale: 1, duration: 1.6, ease: 'elastic.out(1, .6)' },
+          ],
+          overwrite: 'auto',
+        });
       });
+      const bw = callBtn.offsetWidth;
       hearts.forEach((h, k) => {
-        const x0 = rand(-bw * 0.22, bw * 0.22);
-        gsap.fromTo(h, { x: x0, y: 0, scale: 0, opacity: 1, rotation: rand(-20, 20) },
+        const x0 = rand(-bw * 0.3, bw * 0.3);
+        gsap.fromTo(h, { x: x0, y: -10, scale: 0, opacity: 1, rotation: rand(-20, 20) },
           { keyframes: [
-            { scale: rand(0.75, 1.05), y: -rand(30, 50), duration: 0.45, ease: 'power2.out' },
-            { y: -rand(90, 140), x: x0 + rand(-24, 24), opacity: 0, duration: 0.9, ease: 'sine.in' },
+            { scale: rand(0.75, 1.05), y: -rand(40, 60), duration: 0.45, ease: 'power2.out' },
+            { y: -rand(100, 150), x: x0 + rand(-24, 24), opacity: 0, duration: 0.9, ease: 'sine.in' },
           ], delay: k * 0.06 });
       });
-      partClouds();
     });
   }
 
