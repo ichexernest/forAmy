@@ -33,6 +33,7 @@
   const endTitle = $('#endTitle'), endSub = $('#endSub'), endHint = $('#endHint'), replay = $('#replay');
   const trail = $('#trail'), bgWarm = $('#bgWarm');
   const scroller = $('#scroller');
+  const together = $('#together'), endActions = $('#endActions');
 
   /* ───────── 內容 ───────── */
   function splitChars(el, text) {
@@ -464,8 +465,8 @@
     tl.fromTo(endChars, { yPercent: 110, opacity: 0, rotation: 8 },
       { yPercent: 0, opacity: 1, rotation: 0, stagger: 0.035, duration: 0.5, ease: 'back.out(2)' }, tDone - 1.0);
     tl.fromTo(endTitle, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, tDone - 1.0);
-    tl.fromTo([endSub, endHint], { autoAlpha: 0, y: 14 },
-      { autoAlpha: 1, y: 0, stagger: 0.12, duration: 0.4, ease: 'power2.out' }, tDone - 0.6);
+    tl.fromTo([together, endSub, endHint], { autoAlpha: 0, y: 14 },
+      { autoAlpha: 1, y: 0, stagger: 0.12, duration: 0.4, ease: 'power2.out' }, tDone - 0.75);
 
     // I｜照片放不進一個畫面時（手機），繼續往下滑 → 整頁連同標題往上捲，看到最下面那排
     let tReplay = tDone + 0.24;
@@ -475,7 +476,7 @@
       tl.to('#ending', { y: -G.pan, duration: dur, ease: 'none' }, tp);
       tReplay = tp + dur - 0.15;   // 捲到底、最下面那排露出來之後才出現，不會壓在照片上
     }
-    tl.fromTo(replay, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power2.out' }, tReplay);
+    tl.fromTo(endActions, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power2.out' }, tReplay);
     tl.to({}, { duration: 0.35 });
 
     state.photosDone = tDone;
@@ -707,7 +708,7 @@
     const q = gsap.timeline();
 
     // ① 結尾的字淡掉、背景暖色退回、信封升回畫面中間
-    q.to(['#ending', replay, hintMore], { autoAlpha: 0, duration: 0.5, ease: 'power1.out' }, 0)
+    q.to(['#ending', endActions, hintMore], { autoAlpha: 0, duration: 0.5, ease: 'power1.out' }, 0)
       .to(bgWarm, { opacity: 0, duration: 1.8, ease: 'sine.inOut' }, 0)
       .to(ENV, { y: 0, scale: 1, rotation: 0, duration: 0.9, ease: 'power3.inOut' }, 0.1);
 
@@ -1022,6 +1023,112 @@
 
   // 開發用：網址加上 ?debug 可以在 console 操作時間軸
   if (location.search.includes('debug')) window.__dbg = { get openTl() { return openTl; }, get tl() { return tl; }, get st() { return st; }, lenis, state };
+
+  /* ───────── 在一起計時器 ─────────
+     「第 N 天」跟照片上的 Day 一樣算法（開始那天是第 1 天），
+     下面是從那一刻起累積的小時／分／秒，像里程表一樣一格一格往上捲 */
+  const TG = D.together || {};
+  const since = new Date(TG.since || '2026-07-24T19:00:00+08:00').getTime();
+  setText('#tgBefore', TG.dayBefore);
+  setText('#tgAfter', TG.dayAfter);
+  setText('#tgHL', TG.hours);
+  setText('#tgML', TG.minutes);
+  setText('#tgSL', TG.seconds);
+
+  function makeOdo(el) { return { el, slots: [] }; }
+  // 把一串字放進里程表：只有變了的那一位會捲動
+  function setOdo(o, str, animate) {
+    const chars = [...str];
+    while (o.slots.length < chars.length) {
+      const d = document.createElement('span');
+      d.className = 'odo-d';
+      const v = document.createElement('span');
+      v.className = 'odo-v';
+      d.appendChild(v);
+      o.el.insertBefore(d, o.el.firstChild);
+      o.slots.unshift({ d, v, ch: '' });
+    }
+    while (o.slots.length > chars.length) o.el.removeChild(o.slots.shift().d);
+    chars.forEach((ch, i) => {
+      const slot = o.slots[i];
+      if (slot.ch === ch) return;
+      slot.d.classList.toggle('sep', ch === ',');
+      if (!animate || slot.ch === '' || reduce) {
+        slot.v.textContent = ch;
+      } else {
+        const old = slot.v, nv = document.createElement('span');
+        nv.className = 'odo-v';
+        nv.textContent = ch;
+        slot.d.appendChild(nv);
+        gsap.fromTo(nv, { yPercent: 100 }, { yPercent: 0, duration: 0.45, ease: 'back.out(1.6)' });
+        gsap.to(old, { yPercent: -100, opacity: 0, duration: 0.35, ease: 'power2.in', onComplete: () => old.remove() });
+        slot.v = nv;
+      }
+      slot.ch = ch;
+    });
+  }
+  const odoDay = makeOdo($('#tgDay')), odoH = makeOdo($('#tgH')), odoM = makeOdo($('#tgM')), odoS = makeOdo($('#tgS'));
+  const tgHeart = $('#tgHeart');
+  function tickTogether(animate) {
+    const diff = Math.max(0, Date.now() - since);
+    const day = Math.floor(diff / 864e5) + 1;
+    const hours = Math.floor(diff / 36e5), mins = Math.floor(diff / 6e4) % 60, secs = Math.floor(diff / 1e3) % 60;
+    setOdo(odoDay, String(day), animate);
+    setOdo(odoH, hours.toLocaleString('en-US'), animate);
+    setOdo(odoM, String(mins).padStart(2, '0'), animate);
+    setOdo(odoS, String(secs).padStart(2, '0'), animate);
+    together.setAttribute('aria-label', `${TG.dayBefore || ''} ${day} ${TG.dayAfter || ''}`);
+    if (animate && !reduce) gsap.fromTo(tgHeart, { scale: 1.35 }, { scale: 1, duration: 0.6, ease: 'elastic.out(1, .4)' });
+  }
+  tickTogether(false);
+  // 對齊到每一秒的開頭再跳，秒數才準
+  setTimeout(function loop() {
+    tickTogether(true);
+    setTimeout(loop, 1000 - (Date.now() % 1000));
+  }, 1000 - (Date.now() % 1000));
+
+  /* ───────── 打給我（FaceTime） ─────────
+     用一般的連結就能叫出 FaceTime：iPhone 會先跳出「要打給…嗎？」讓她確認。
+     沒填號碼、或不是蘋果裝置（打不了 FaceTime）時，按鈕就不出現 */
+  const CALL = D.call || {};
+  const callBtn = $('#callBtn');
+  // 開發用：網址加 ?debug&forcecall 會用假號碼顯示按鈕，方便在電腦上看樣子
+  const forceCall = location.search.includes('debug') && location.search.includes('forcecall');
+  const isApple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) || forceCall;
+  const callTo = String(CALL.to || (forceCall ? '+886900000000' : '')).replace(/[\s-]/g, '');   // 去掉空白和 -，方便她填 0912-345-678 這種寫法
+  if (callTo && isApple) {
+    callBtn.href = (CALL.type === 'audio' ? 'facetime-audio:' : 'facetime:') + callTo;
+    setText('#callBtnText', CALL.button);
+  } else {
+    callBtn.remove();
+  }
+  // 電話平常每隔幾秒「鈴鈴」晃一下
+  const ring = $('#callRing');
+  if (ring && !reduce) {
+    gsap.timeline({ repeat: -1, repeatDelay: 2.6, delay: 1 })
+      .to(ring, { keyframes: { rotation: [0, -16, 14, -12, 10, -6, 4, 0] }, duration: 0.7, ease: 'none', transformOrigin: '50% 60%' });
+  }
+  // 點下去噴一圈小愛心（同時 iPhone 會跳出 FaceTime 確認）
+  if (callBtn.isConnected) {
+    const callFx = $('#callFx');
+    const hearts = Array.from({ length: 10 }, (_, k) => {
+      const h = document.createElement('i');
+      h.innerHTML = HEART;
+      h.style.color = PALETTE[k % PALETTE.length];
+      callFx.appendChild(h);
+      gsap.set(h, { scale: 0 });
+      return h;
+    });
+    callBtn.addEventListener('click', () => {
+      gsap.fromTo(callBtn, { scale: 0.92 }, { scale: 1, duration: 0.5, ease: 'elastic.out(1, .45)' });
+      hearts.forEach((h, k) => {
+        const ang = -Math.PI / 2 + (k / (hearts.length - 1) - 0.5) * Math.PI * 1.2 + rand(-0.15, 0.15), r = rand(46, 78);
+        gsap.fromTo(h, { x: 0, y: 0, scale: 0, rotation: 0, opacity: 1 },
+          { x: Math.cos(ang) * r, y: Math.sin(ang) * r, scale: rand(0.7, 1.15), rotation: rand(-40, 40), duration: 0.6, ease: 'power2.out' });
+        gsap.to(h, { opacity: 0, duration: 0.3, delay: 0.5 });
+      });
+    });
+  }
 
   /* ───────── 背景音樂 ───────── */
   const M = D.music || {};

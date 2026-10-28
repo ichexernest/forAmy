@@ -711,12 +711,42 @@ button { font: inherit; color: inherit; }
   color: var(--ink-soft);
   visibility: hidden;
 }
-.replay {
+/* 結尾最下面的按鈕列：打給我（主要）＋把信收回去 */
+.end-actions {
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: calc(var(--sab) + max(14px, 2vh));
-  margin-left: -60px;
-  width: 120px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 16px;
+  visibility: hidden;
+}
+.call-btn {
+  position: relative;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--rose);
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: .08em;
+  box-shadow: 0 10px 22px -10px rgba(200, 80, 105, .75);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.call-ring { display: inline-flex; width: 17px; height: 17px; }
+.call-ring svg { width: 100%; height: 100%; fill: #fff; display: block; }
+.call-btn:focus-visible { outline: 3px solid var(--rose); outline-offset: 3px; }
+.call-fx { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.call-fx i { position: absolute; left: -8px; top: -8px; width: 16px; height: 16px; }
+.call-fx svg { width: 100%; height: 100%; display: block; fill: currentColor; }
+.replay {
   justify-content: center;
   display: inline-flex;
   align-items: center;
@@ -730,7 +760,6 @@ button { font: inherit; color: inherit; }
   letter-spacing: .05em;
   cursor: pointer;
   pointer-events: auto;
-  visibility: hidden;
 }
 .replay svg { width: 16px; height: 16px; fill: none; stroke: var(--rose); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .replay:focus-visible { outline: 3px solid var(--rose); outline-offset: 3px; }
@@ -958,3 +987,60 @@ button { font: inherit; color: inherit; }
 .sound-btn.muted .wave { display: none; }
 .sound-btn.muted .mute { display: inline; }
 .sound-btn.muted .spk { fill: var(--ink-soft); }
+
+
+/* ───────── 在一起計時器 ───────── */
+.together {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 8px auto 2px;
+  padding: 6px 18px 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .62);
+  box-shadow: 0 8px 20px -14px rgba(200, 90, 110, .55), inset 0 0 0 1px rgba(232, 150, 165, .2);
+  visibility: hidden;
+}
+.tg-day {
+  display: flex;
+  align-items: center;
+  gap: .3em;
+  font-size: 14px;
+  letter-spacing: .12em;
+  color: var(--ink-soft);
+}
+.tg-day-num {
+  font-family: var(--f-script);
+  font-weight: 700;
+  font-size: 34px;
+  letter-spacing: 0;
+  color: var(--rose);
+  margin: 0 .05em;
+}
+.tg-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 17px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.tg-clock small { font-size: 12px; color: var(--ink-soft); margin: 0 4px 0 1px; letter-spacing: .08em; }
+.tg-clock small:last-child { margin-right: 0; }
+.tg-heart { width: 13px; height: 13px; margin-right: 5px; align-self: center; display: inline-block; }
+.tg-heart svg { width: 100%; height: 100%; fill: var(--rose); display: block; }
+/* 里程表：每一位數是一個小窗，數字換的時候舊的往上滑走、新的從下面滑上來 */
+.odo { display: inline-flex; }
+.odo-d {
+  position: relative;
+  display: inline-block;
+  width: .62em;
+  height: 1.2em;
+  overflow: hidden;
+  line-height: 1.2em;
+  text-align: center;
+}
+.odo-d.sep { width: .3em; }
+.tg-day-num .odo-d { width: .5em; }
+.odo-v { position: absolute; left: 0; right: 0; top: 0; }

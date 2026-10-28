@@ -171,13 +171,36 @@
     </div>
     <div class="ending" id="ending">
       <h2 class="end-title" id="endTitle"></h2>
+      <!-- 在一起計時器 -->
+      <div class="together" id="together" role="timer" aria-live="off">
+        <div class="tg-day">
+          <span id="tgBefore"></span><span class="odo tg-day-num" id="tgDay"></span><span id="tgAfter"></span>
+        </div>
+        <div class="tg-clock">
+          <i class="tg-heart" id="tgHeart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.6c-.3 0-.6-.1-.8-.3C6.4 16.2 3 13.2 3 9.4 3 6.9 5 5 7.4 5c1.8 0 3.2 1 4.6 2.6C13.4 6 14.8 5 16.6 5 19 5 21 6.9 21 9.4c0 3.8-3.4 6.8-8.2 10.9-.2.2-.5.3-.8.3z"/></svg></i>
+          <span class="odo" id="tgH"></span><small id="tgHL"></small>
+          <span class="odo" id="tgM"></span><small id="tgML"></small>
+          <span class="odo" id="tgS"></span><small id="tgSL"></small>
+        </div>
+      </div>
       <p class="end-sub" id="endSub"></p>
       <p class="end-hint" id="endHint"></p>
     </div>
-    <button class="replay" id="replay" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg>
-      <span id="replayText"></span>
-    </button>
+    <!-- 結尾的兩個按鈕 -->
+    <div class="end-actions" id="endActions">
+      <!-- 點了用 FaceTime 打給你（號碼在 content.js 的 call 設定） -->
+      <a class="call-btn" id="callBtn" href="#">
+        <span class="call-ring" id="callRing" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M6.6 3.2c.6-.5 1.5-.4 2 .2l2 2.6c.4.6.4 1.4-.1 1.9l-1.2 1.3c.9 1.9 2.5 3.5 4.4 4.4l1.3-1.2c.5-.5 1.3-.5 1.9-.1l2.6 2c.6.5.7 1.4.2 2l-1.2 1.5c-.8 1-2.2 1.4-3.4.9C10.4 17 7 13.6 5.3 8.9c-.5-1.2-.1-2.6.9-3.4z"/></svg>
+        </span>
+        <span id="callBtnText"></span>
+        <span class="call-fx" id="callFx" aria-hidden="true"></span>
+      </a>
+      <button class="replay" id="replay" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg>
+        <span id="replayText"></span>
+      </button>
+    </div>
   </div>
 
   <!-- 背景音樂 -->
