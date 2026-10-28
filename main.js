@@ -448,21 +448,24 @@
     tl.to(hintMore, { autoAlpha: 0, y: -10, duration: 0.25 }, t + 0.1);
 
     // G｜照片一張一張彈出來
+    // 每張之間隔久一點、慢慢從信封抽出來再飛到定位，一張一張比較有層次
+    const STEP = 0.3, RISE = 0.5, FLY = 0.95;
     photoEls.forEach((el, i) => {
-      const ti = t + i * 0.22, p = G.pos[i];
-      tl.to(el, { y: G.yRise, duration: 0.45, ease: 'power2.out' }, ti)
-        .set(el, { zIndex: 10 + i }, ti + 0.45)
-        .to(el, { x: p.x, y: p.y, rotation: p.r, scale: p.s, duration: 0.85, ease: 'back.out(1.3)' }, ti + 0.45);
+      const ti = t + i * STEP, p = G.pos[i];
+      tl.to(el, { y: G.yRise, duration: RISE, ease: 'power2.out' }, ti)
+        .set(el, { zIndex: 10 + i }, ti + RISE)
+        .to(el, { x: p.x, y: p.y, rotation: p.r, scale: p.s, duration: FLY, ease: 'back.out(1.3)' }, ti + RISE);
     });
-    const tDone = t + (n - 1) * 0.22 + 0.45 + 0.85;
-    tl.to(ENV, { y: G.envEnd, scale: 0.72, duration: 0.8, ease: 'power2.inOut' }, t + n * 0.22 + 0.2);
+    const tDone = t + (n - 1) * STEP + RISE + FLY;
+    tl.to(ENV, { y: G.envEnd, scale: 0.72, duration: 0.8, ease: 'power2.inOut' }, t + n * STEP + 0.2);
 
     // H｜結尾
+    // 最後一張照片落定時，標題和下面兩行也剛好排好（不會停在半途）
     tl.fromTo(endChars, { yPercent: 110, opacity: 0, rotation: 8 },
-      { yPercent: 0, opacity: 1, rotation: 0, stagger: 0.035, duration: 0.5, ease: 'back.out(2)' }, tDone - 0.5);
-    tl.fromTo(endTitle, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, tDone - 0.5);
+      { yPercent: 0, opacity: 1, rotation: 0, stagger: 0.035, duration: 0.5, ease: 'back.out(2)' }, tDone - 1.0);
+    tl.fromTo(endTitle, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, tDone - 1.0);
     tl.fromTo([endSub, endHint], { autoAlpha: 0, y: 14 },
-      { autoAlpha: 1, y: 0, stagger: 0.12, duration: 0.4, ease: 'power2.out' }, tDone);
+      { autoAlpha: 1, y: 0, stagger: 0.12, duration: 0.4, ease: 'power2.out' }, tDone - 0.6);
 
     // I｜照片放不進一個畫面時（手機），繼續往下滑 → 整頁連同標題往上捲，看到最下面那排
     let tReplay = tDone + 0.24;
@@ -606,7 +609,8 @@
     if (dist < 2) return;
     state.snapping = true;
     lenis.scrollTo(y, {
-      duration: clamp(0.45, 1.1, dist / 900 + 0.35),
+      // 自動滑完的時間照動畫長度算：短的一段約 1 秒，照片那一大段約 2～2.5 秒，不會一下子衝完
+      duration: clamp(0.5, 3.4, Math.abs(target - now) * 1.1),
       easing: easeInOut,
       onComplete: () => { state.snapping = false; },
     });
