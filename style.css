@@ -957,17 +957,25 @@ button { font: inherit; color: inherit; }
 
 /* 里程表：每一位數是一個小窗，數字換的時候舊的往上滑走、新的從下面滑上來 */
 .odo { display: inline-flex; }
+/* 每一位數一格：格子寬度跟著那個數字的真正字寬（看不見的 .odo-s 撐開），
+   四周留一圈空間給斜斜的手寫筆畫，再用負 margin 抵消，數字間距不變 */
 .odo-d {
   position: relative;
   display: inline-block;
-  width: .62em;
-  height: 1.2em;
   overflow: hidden;
-  line-height: 1.2em;
-  text-align: center;
+  padding: .18em .16em;
+  margin: -.18em -.16em;
+  line-height: 1.2;
 }
-.odo-d.sep { width: .3em; }
-.odo-v { position: absolute; left: 0; right: 0; top: 0; }
+.odo-s { display: block; visibility: hidden; white-space: pre; }
+.odo-v {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: pre;
+}
 
 
 /* ───────── 第三區：雲朵與我們的時間 ───────── */
@@ -1001,7 +1009,7 @@ button { font: inherit; color: inherit; }
   font-weight: 700;
   line-height: 1;
   color: var(--rose);
-  text-shadow: 0 3px 0 rgba(255, 255, 255, .85), 0 10px 22px rgba(232, 120, 143, .25);
+  text-shadow: 0 3px 0 rgba(255, 255, 255, .9);
 }
 .fn-time {
   margin-top: 2px;
@@ -1013,8 +1021,6 @@ button { font: inherit; color: inherit; }
   color: var(--ink-soft);
   text-shadow: 0 2px 0 rgba(255, 255, 255, .8);
 }
-.fn-time .odo-d { width: .46em; }
-.fn-time .odo-d.sep { width: .2em; }
 .fn-u { font-size: .74em; margin: 0 .5em 0 .14em; }
 .fn-u:last-child { margin-right: 0; }
 
@@ -1046,9 +1052,7 @@ button { font: inherit; color: inherit; }
 }
 /* 天數：手寫大字（數字框留大一點，手寫字的筆畫才不會被切到） */
 .fn-days .odo { font-size: clamp(84px, 24vw, 120px); }
-.fn-days .odo-d { width: .56em; height: 1.34em; line-height: 1.34em; margin: -.14em -.02em; }
 .fn-unit { font-family: var(--f-round); font-weight: 400; font-size: clamp(26px, 7vw, 34px); color: var(--rose); letter-spacing: .05em; transform: translateY(.42em); }
-.fn-time .odo-d { height: 1.3em; line-height: 1.3em; }
 .fn-u { font-family: var(--f-round); font-weight: 400; transform: translateY(.12em); }
 
 /* 雲：一顆顆圓圓的雲團疊起來，上面亮、下面帶一點粉紫陰影（黏土風） */

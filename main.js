@@ -1066,17 +1066,19 @@
     while (o.slots.length < chars.length) {
       const d = document.createElement('span');
       d.className = 'odo-d';
+      const sz = document.createElement('span');   // 看不見，只負責把格子撐成這個數字的寬度
+      sz.className = 'odo-s';
       const v = document.createElement('span');
       v.className = 'odo-v';
-      d.appendChild(v);
+      d.append(sz, v);
       o.el.insertBefore(d, o.el.firstChild);
-      o.slots.unshift({ d, v, ch: '' });
+      o.slots.unshift({ d, sz, v, ch: '' });
     }
     while (o.slots.length > chars.length) o.el.removeChild(o.slots.shift().d);
     chars.forEach((ch, i) => {
       const slot = o.slots[i];
       if (slot.ch === ch) return;
-      slot.d.classList.toggle('sep', ch === ',');
+      slot.sz.textContent = ch;
       if (!animate || slot.ch === '' || reduce) {
         slot.v.textContent = ch;
       } else {
@@ -1113,14 +1115,14 @@
 
   /* ───────── 打給我（FaceTime） ─────────
      用一般的連結就能叫出 FaceTime：iPhone 會先跳出「要打給…嗎？」讓她確認。
-     沒填號碼、或不是蘋果裝置（打不了 FaceTime）時，按鈕就不出現 */
+     沒填號碼時按鈕和周圍的雲都不出現 */
   const CALL = D.call || {};
   const callBtn = $('#callBtn');
   // 開發用：網址加 ?debug&forcecall 會用假號碼顯示按鈕，方便在電腦上看樣子
   const forceCall = location.search.includes('debug') && location.search.includes('forcecall');
-  const isApple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) || forceCall;
   const callTo = String(CALL.to || (forceCall ? '+886900000000' : '')).replace(/[\s-]/g, '');   // 去掉空白和 -，方便她填 0912-345-678 這種寫法
-  if (callTo && isApple) {
+  // 只要填了號碼就顯示（她用 iPhone 點會叫出 FaceTime；在電腦上也看得到按鈕樣子）
+  if (callTo) {
     callBtn.href = (CALL.type === 'audio' ? 'facetime-audio:' : 'facetime:') + callTo;
     setText('#callBtnText', CALL.button);
   } else {
