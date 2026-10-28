@@ -1219,21 +1219,6 @@
   if (callBtn.isConnected) {
     gsap.set(callBtn, { xPercent: -50, yPercent: -50 });
     const fe = $('#fe'), feFlap = $('#feFlap');
-    // 信封上的封蠟：跟開場那顆同一種蠟，中間壓印的是一台小攝影機（FaceTime 視訊）
-    const CAM = '<rect x="29" y="39" width="29" height="24" rx="6.5"/><path d="M60.5 47.5 L71 40.8 C72.4 39.9 74 40.9 74 42.5 L74 59.5 C74 61.1 72.4 62.1 71 61.2 L60.5 54.5 Z"/>';
-    $('#feWax').innerHTML =
-      '<svg viewBox="0 0 100 100" aria-hidden="true">' +
-      `<path d="${WAX}" fill="url(#waxBody)"/>` +
-      `<path d="${WAX}" fill="none" stroke="#8f2f49" stroke-opacity=".3" stroke-width="1.2"/>` +
-      '<circle cx="50" cy="51" r="30.5" fill="url(#waxPress)"/>' +
-      '<circle cx="49.2" cy="50.2" r="30.5" fill="none" stroke="#8a2943" stroke-opacity=".5" stroke-width="2"/>' +
-      '<circle cx="50.9" cy="51.9" r="30.5" fill="none" stroke="#ffc9d4" stroke-opacity=".5" stroke-width="1.3"/>' +
-      '<circle cx="50" cy="51" r="24.5" fill="none" stroke="#f0a2b3" stroke-opacity=".55" stroke-width="1.1" stroke-dasharray="1.4 3.1"/>' +
-      `<g transform="translate(.8 1.4)" fill="#8f2f49" opacity=".55">${CAM}</g>` +
-      `<g transform="translate(-.6 -.6)" fill="#ffc2cf" opacity=".6">${CAM}</g>` +
-      `<g fill="#d8667f">${CAM}</g>` +
-      '<ellipse cx="32" cy="22" rx="13" ry="5.5" fill="#fff" opacity=".2" transform="rotate(-28 32 22)"/>' +
-      '</svg>';
     gsap.set(feFlap, { transformPerspective: 700 });
     if (!reduce) gsap.to(fe, { y: -7, rotation: 0.6, duration: 2.6, ease: 'sine.inOut', yoyo: true, repeat: -1 });
     const callFx = $('#callFx');

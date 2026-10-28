@@ -190,7 +190,7 @@
       <!-- 被雲包圍的 FaceTime 按鈕：後面一層雲、按鈕、前面一層雲 -->
       <div class="ft-nest" id="ftNest">
         <div class="ft-layer ft-back" id="ftBack" aria-hidden="true"></div>
-        <!-- 打給我：一封大信封，封蠟上壓印的是攝影機（FaceTime 視訊） -->
+        <!-- 打給我：一封大信封，中間是打 FaceTime 的按鈕 -->
         <a class="ft-btn" id="callBtn" href="#">
           <span class="fe" id="fe">
             <span class="fe-back"></span>
@@ -201,10 +201,13 @@
             </svg>
             <span class="fe-flap" id="feFlap"><span class="fe-flap-face"></span></span>
             <span class="fe-stamp" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.6c-.3 0-.6-.1-.8-.3C6.4 16.2 3 13.2 3 9.4 3 6.9 5 5 7.4 5c1.8 0 3.2 1 4.6 2.6C13.4 6 14.8 5 16.6 5 19 5 21 6.9 21 9.4c0 3.8-3.4 6.8-8.2 10.9-.2.2-.5.3-.8.3z"/></svg></span>
-            <span class="fe-text" id="callBtnText"></span>
-            <span class="fe-seal" aria-hidden="true">
-              <i class="fe-ring"></i><i class="fe-ring"></i><i class="fe-ring"></i>
-              <span class="fe-wax" id="feWax"></span>
+            <!-- 一看就知道能按的按鈕：白色攝影機（FaceTime 視訊）＋現在就打給我 -->
+            <span class="fe-cta">
+              <i class="fe-ring"></i><i class="fe-ring"></i>
+              <span class="fe-cam" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="13" height="11" rx="3"/><path d="M16.3 10.4l4-2.6c.6-.4 1.4.1 1.4.8v6.8c0 .7-.8 1.2-1.4.8l-4-2.6z"/></svg>
+              </span>
+              <span class="fe-cta-text" id="callBtnText"></span>
             </span>
           </span>
         </a>
