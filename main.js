@@ -79,11 +79,16 @@
     el.setAttribute('aria-label', `打開照片：${p.title}`);
     el.innerHTML =
       `<i class="tape"></i>` +
-      `<div class="ph-img"><img src="photos/${esc(p.file)}" alt="${esc(p.title)}" draggable="false" decoding="async"` +
+      `<div class="ph-img"><img src="photos/thumb/${esc(p.file)}" data-full="photos/${esc(p.file)}" alt="${esc(p.title)}" draggable="false" decoding="async"` +
       ` style="object-position:${esc(p.focus || 'center')}"></div>` +
       `<div class="ph-label"><span>${esc(p.title)}</span>${p.tag ? `<small>${esc(p.tag)}</small>` : `<small class="ph-heart" aria-hidden="true">${HEART}</small>`}</div>`;
     const img = el.querySelector('img');
-    img.addEventListener('error', () => { img.parentElement.classList.add('noimg'); img.remove(); }, { once: true });
+    // 卡片先用小縮圖（解碼快、不卡）；新加的照片沒有縮圖就直接用原圖
+    img.addEventListener('error', () => {
+      if (!img.dataset.fellBack) { img.dataset.fellBack = '1'; img.src = img.dataset.full; return; }
+      img.parentElement.classList.add('noimg');
+      img.remove();
+    });
     scene.insertBefore(el, envFront);
     return el;
   });
@@ -126,11 +131,13 @@
   });
 
   /* ───────── 平滑捲動 ───────── */
+  // 滾輪／觸控板的平滑只交給 Lenis 一層（lerp 越小越滑、越大越跟手）；
+  // 手機觸控用原生慣性捲動，本身就很順
   const lenis = new Lenis({
-    duration: 1.35,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    lerp: 0.1,
     smoothWheel: true,
-    touchMultiplier: 1.3,
+    wheelMultiplier: 0.9,
+    touchMultiplier: 1.2,
   });
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
@@ -244,6 +251,7 @@
     r.setProperty('--H', G.H + 'px');
     r.setProperty('--pw', G.pw + 'px');
     r.setProperty('--seal', G.envW * 0.22 + 'px');
+    r.setProperty('--stageH', G.vh + 'px');
   }
 
   /* ───────── 拆信（手勢控制的時間軸） ───────── */
@@ -363,7 +371,9 @@
       .to(letter, { y: G.yU, duration: 0.9, ease: 'power2.inOut' }, t);
     t += 0.9;
     tl.set(paperReal, { autoAlpha: 1 }, t).set([foldTop, foldBot], { autoAlpha: 0 }, t);
-    t += 0.2;
+    const kUnfold = t;
+    t += 0.15;
+    const kRead = t;
 
     // D｜閱讀：信的內容往上捲
     if (overflow > 0) {
@@ -372,9 +382,12 @@
         .to(pcWrap, { y: -overflow, duration: R, ease: 'none' }, t)
         .to(fadeB, { opacity: 0, duration: 0.2 }, t + R - 0.2);
     }
+    // 讀信時信紙輕輕浮起、微微傾斜，捲動永遠有東西在動，不會覺得卡住
+    tl.to(letter, { y: G.yU - 8, rotation: -0.8, duration: R + 0.2, ease: 'sine.inOut' }, kUnfold);
     // 讀到信尾就出現「還沒完喔」，一路陪到照片開始跳出來
     tl.fromTo(hintMore, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.3, ease: 'back.out(2)' }, t + R - 0.3);
-    t += R + 0.35;
+    const kReadEnd = t + R;
+    t += R + 0.2;
 
     // E｜信飛走
     tl.to(letter, { y: G.yU + 28, rotation: 2, scale: 0.97, duration: 0.3, ease: 'power1.out' }, t)
@@ -403,6 +416,7 @@
       tl.to(el, { y: G.yIn - G.envH * rand(0.1, 0.18), duration: 0.3, ease: 'back.out(3)' }, t + 0.08 + i * 0.03);
     });
     t += 0.55;
+    const kEnvBack = t;
     tl.to(hintMore, { autoAlpha: 0, y: -10, duration: 0.25 }, t + 0.1);
 
     // G｜照片一張一張彈出來
@@ -425,26 +439,35 @@
     // I｜照片放不進一個畫面時（手機），繼續往下滑 → 整頁連同標題往上捲，看到最下面那排
     let tReplay = tDone + 0.24;
     if (G.pan > 0) {
-      const tp = tDone + 0.5, dur = (G.pan / G.unit) * 1.25;
+      const tp = tDone + 0.3, dur = (G.pan / G.unit) * 1.25;
       photoEls.forEach((el, i) => tl.to(el, { y: G.pos[i].y - G.pan, duration: dur, ease: 'none' }, tp));
       tl.to('#ending', { y: -G.pan, duration: dur, ease: 'none' }, tp);
       tReplay = tp + dur - 0.15;   // 捲到底、最下面那排露出來之後才出現，不會壓在照片上
     }
     tl.fromTo(replay, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power2.out' }, tReplay);
-    tl.to({}, { duration: 0.6 });
+    tl.to({}, { duration: 0.35 });
 
     state.photosDone = tDone;
+    // 放開手時會自動滑到最近的關鍵畫面：信抽出來、信紙到正中間、攤開、讀完、信封回來、照片落定、最後
+    // （讀信那段可以停在任何地方，不吸附）
+    const kOut = 1.2, kCenter = 2.2, kEnd = tl.duration();
+    state.snapSegs = [[kOut, kCenter], [kCenter, kRead], [kReadEnd, kEnvBack], [kEnvBack, tDone], [tDone, kEnd]];
+    state.snapFirst = kOut;
     scroller.style.height = tl.duration() * G.unit + G.vh + 'px';
 
     st = ScrollTrigger.create({
       trigger: scroller,
       start: 'top top',
       end: 'bottom bottom',
-      scrub: reduce ? true : 0.9,
+      // 動畫幾乎直接跟著捲動位置走（只留 0.2 秒緩衝吸收手機慣性的小抖動），不再延遲一整秒
+      scrub: reduce ? true : 0.2,
       animation: tl,
-      onUpdate: (self) => {
+      onUpdate: () => {
         const done = tl.time() >= state.photosDone - 0.02;
-        photoEls.forEach((el) => (el.tabIndex = done ? 0 : -1));
+        if (done !== state.photosFocusable) {
+          state.photosFocusable = done;
+          photoEls.forEach((el) => (el.tabIndex = done ? 0 : -1));
+        }
       },
     });
   }
@@ -490,7 +513,12 @@
     document.body.classList.add('closed');
     gsap.to(openTl, {
       progress: 0, duration: 1.4, ease: 'power2.inOut', overwrite: true,
-      onComplete: () => { state.closing = false; state.opened = false; startBob(); },
+      onComplete: () => {
+        state.closing = false;
+        state.opened = false;
+        if (state.needRebuild) { state.needRebuild = false; rebuild(); }
+        startBob();
+      },
     });
   }
 
@@ -506,6 +534,54 @@
   }, { passive: true });
   gsap.ticker.add(() => {
     if (state.pendingClose && !state.lb && !state.rebuilding && tl && tl.progress() < 0.002) closeEnvelope();
+  });
+
+  /* ───────── 放開手 → 滑到最近的關鍵畫面 ─────────
+     停在動畫的一半（信紙半攤開、照片飛到一半）看起來像卡住，
+     所以停下來 0.16 秒後，順著剛剛捲的方向把這一段動畫走完 */
+  let lastScrollAt = 0, touching = false, idleChecked = true;
+  const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const markScroll = () => { lastScrollAt = performance.now(); idleChecked = false; };
+  lenis.on('scroll', markScroll);
+  const stopSnap = () => {
+    if (!state.snapping) return;
+    state.snapping = false;
+    lenis.scrollTo(lenis.scroll, { immediate: true, force: true });
+  };
+  addEventListener('touchstart', () => { touching = true; stopSnap(); }, { passive: true });
+  addEventListener('touchend', () => { touching = false; markScroll(); }, { passive: true });
+  addEventListener('touchcancel', () => { touching = false; markScroll(); }, { passive: true });
+  addEventListener('wheel', () => { state.snapping = false; }, { passive: true });
+
+  function snapCheck() {
+    if (!st || !state.opened || state.closing || state.lb || state.snapping || reduce) return;
+    const dur = tl.duration(), now = st.progress * dur, dir = lenis.direction || 1;
+    let target = null;
+    // 剛開始抽信那段：往下捲過一點點就幫忙抽完；往回捲就不管（可能是要闔上信封）
+    if (dir > 0 && now > state.snapFirst * 0.3 && now < state.snapFirst - 0.01) target = state.snapFirst;
+    for (const [a, b] of state.snapSegs) {
+      if (now > a + 0.01 && now < b - 0.01) {
+        const f = (now - a) / (b - a);
+        target = dir > 0 ? (f > 0.25 ? b : a) : (f < 0.75 ? a : b);
+        break;
+      }
+    }
+    if (target === null) return;
+    const y = st.start + (target / dur) * (st.end - st.start);
+    const dist = Math.abs(y - lenis.scroll);
+    if (dist < 2) return;
+    state.snapping = true;
+    lenis.scrollTo(y, {
+      duration: clamp(0.45, 1.1, dist / 900 + 0.35),
+      easing: easeInOut,
+      onComplete: () => { state.snapping = false; },
+    });
+  }
+  gsap.ticker.add(() => {
+    if (!idleChecked && !touching && performance.now() - lastScrollAt > 160) {
+      idleChecked = true;
+      snapCheck();
+    }
   });
 
   /* ───────── 手勢 ───────── */
@@ -616,6 +692,13 @@
       width: g.TW + 'px', height: g.TH + 'px', fontSize: g.TW / 14 + 'px',
     });
     LB.el.appendChild(c);
+    // 燈箱放大後換成原圖：先在背景解碼好再換，不會閃一下
+    const ci = c.querySelector('img');
+    if (ci && ci.dataset.full && !ci.src.endsWith(ci.dataset.full)) {
+      const full = new Image();
+      full.src = ci.dataset.full;
+      (full.decode ? full.decode() : Promise.resolve()).then(() => { ci.src = full.src; }).catch(() => {});
+    }
     return c;
   }
   function fromPhoto(i, g) {
@@ -839,7 +922,7 @@
   });
 
   // 開發用：網址加上 ?debug 可以在 console 操作時間軸
-  if (location.search.includes('debug')) window.__dbg = { get openTl() { return openTl; }, get tl() { return tl; }, state };
+  if (location.search.includes('debug')) window.__dbg = { get openTl() { return openTl; }, get tl() { return tl; }, get st() { return st; }, lenis, state };
 
   /* ───────── 背景音樂 ───────── */
   const M = D.music || {};
@@ -878,37 +961,64 @@
   /* ───────── 開始 ───────── */
   gsap.set('#bg', { opacity: 0 });
   gsap.set(scene, { y: -innerHeight * 1.1 });
-  const fontsReady = Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1800))]);
-  fontsReady.then(() => {
-    build();
-    openTl = buildOpen();
-    ambient();
+  gsap.set(introChars, { opacity: 0 });
+  gsap.set('.it-spark', { scale: 0 });
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-    if (!hasMusic) { gate.hidden = true; intro(); }
-    else {
-      // 先提醒打開聲音；點一下＝開始播音樂（iPhone 規定要使用者先點過）＋開始開場動畫
-      gsap.fromTo('.gate-in', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' });
-      let started = false;
-      const go = () => {
-        if (started) return;
-        started = true;
-        playMusic();
-        gsap.to('.gate-in', { scale: 0.92, opacity: 0, duration: 0.4, ease: 'power2.in' });
-        gsap.to(gate, { opacity: 0, duration: 0.6, delay: 0.15, ease: 'power1.inOut', onComplete: () => { gate.hidden = true; } });
-        gsap.to(soundBtn, { autoAlpha: 1, duration: 0.5, delay: 2.8 });
-        gsap.delayedCall(0.35, intro);
-      };
-      gate.addEventListener('click', go);
-      gate.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
-      gate.focus({ preventScroll: true });
-    }
-    // 中文字型是分段下載的，字型晚到導致信的長度改變時，重新量一次
+  // 把整個網站會出現的字一次載好：Google 的中文字型是「用到哪些字才下載哪些字」，
+  // 先載好就不會捲到一半字型才到、版面重算跳一下
+  const allText = JSON.stringify(D);
+  const fontJobs = ['400 17px "LXGW WenKai TC"', '700 17px "LXGW WenKai TC"', '400 20px "Huninn"', '700 40px "Caveat"', '500 20px "Caveat"']
+    .map((f) => document.fonts.load(f, allText).catch(() => {}));
+  const fontsAll = Promise.race([Promise.all(fontJobs).then(() => document.fonts.ready), wait(4000)]);
+  const gateFonts = Promise.race([document.fonts.load('400 24px "Huninn"', (M.soundHint || '') + (M.start || '')).catch(() => {}), wait(1200)]);
+
+  // 卡片縮圖先解碼好，照片彈出來時不會頓一下
+  const decodeThumbs = () => photoEls.forEach((el) => {
+    const im = el.querySelector('img');
+    if (im && im.decode) im.decode().catch(() => {});
+  });
+
+  function watchFonts() {
     let lastPcH = pc.offsetHeight, fT;
     document.fonts.addEventListener('loadingdone', () => {
       clearTimeout(fT);
       fT = setTimeout(() => {
-        if (Math.abs(pc.offsetHeight - lastPcH) > 2) { lastPcH = pc.offsetHeight; rebuild(); }
+        if (Math.abs(pc.offsetHeight - lastPcH) <= 2) return;
+        lastPcH = pc.offsetHeight;
+        // 信已經拆開在看了就先不重算（會跳），等信封闔上再算
+        if (state.opened || state.opening || state.closing) state.needRebuild = true;
+        else rebuild();
       }, 300);
     });
+  }
+
+  const ready = fontsAll.then(() => {
+    build();
+    openTl = buildOpen();
+    decodeThumbs();
+    watchFonts();
   });
+
+  ambient();
+  if (!hasMusic) { gate.hidden = true; ready.then(intro); }
+  else {
+    // 先提醒打開聲音；點一下＝開始播音樂（iPhone 規定要使用者先點過）＋開始開場動畫
+    gateFonts.then(() => gsap.fromTo('.gate-in', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }));
+    let started = false;
+    const go = () => {
+      if (started) return;
+      started = true;
+      playMusic();   // 一定要在點擊當下呼叫，iPhone 才會讓它出聲
+      ready.then(() => {
+        gsap.to('.gate-in', { scale: 0.92, opacity: 0, duration: 0.4, ease: 'power2.in' });
+        gsap.to(gate, { opacity: 0, duration: 0.6, delay: 0.15, ease: 'power1.inOut', onComplete: () => { gate.hidden = true; } });
+        gsap.to(soundBtn, { autoAlpha: 1, duration: 0.5, delay: 2.8 });
+        gsap.delayedCall(0.35, intro);
+      });
+    };
+    gate.addEventListener('click', go);
+    gate.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    gate.focus({ preventScroll: true });
+  }
 })();

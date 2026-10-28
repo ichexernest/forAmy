@@ -106,11 +106,11 @@ button { font: inherit; color: inherit; }
 .floater { position: absolute; top: 0; display: block; }
 .floater svg { width: 100%; height: 100%; fill: currentColor; display: block; }
 .floater .dot { display: block; width: 100%; height: 100%; border-radius: 50%; background: currentColor; }
+/* 紙張顆粒：一般疊加就好；混色模式會讓 iPhone 每一格都重畫整個畫面 */
 .grain {
   position: absolute;
-  inset: -50%;
-  opacity: .22;
-  mix-blend-mode: multiply;
+  inset: 0;
+  opacity: .16;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .35 0 0 0 0 .38 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -123,6 +123,9 @@ button { font: inherit; color: inherit; }
   will-change: transform;
 }
 
+.env,
+.letter,
+.photo { will-change: transform; }
 .env {
   position: absolute;
   left: 50%;
@@ -172,7 +175,7 @@ button { font: inherit; color: inherit; }
     radial-gradient(rgba(255, 255, 255, .7) 1.4px, transparent 1.9px) 0 0 / 12px 12px,
     linear-gradient(0deg, #f6c7cf 0%, #f2b0bc 100%);
 }
-.env-front { z-index: 4; filter: drop-shadow(0 -1px 2px rgba(170, 80, 100, .12)); }
+.env-front { z-index: 4; }
 .env-front svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .env-sealwrap { z-index: 6; }
 
@@ -440,6 +443,15 @@ button { font: inherit; color: inherit; }
 .trail { position: absolute; left: 50%; top: 50%; width: 0; height: 0; z-index: 8; }
 .trail i { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; }
 .trail svg { width: 100%; height: 100%; display: block; fill: currentColor; }
+
+/* 舞台高度固定成開頁時的高度：iPhone 捲動時網址列伸縮會改變視窗高度，
+   如果跟著變，信封、信紙、照片都會上下飄一下 */
+#scene,
+#intro,
+#ui {
+  bottom: auto;
+  height: var(--stageH, 100%);
+}
 
 /* ───────── 開場 ───────── */
 #intro {
