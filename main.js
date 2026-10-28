@@ -133,9 +133,9 @@
   });
   let popIdx = 0, lastPop = 0;
   // 從信封口噴兩顆出去；每顆噴出來就自己飛完、淡掉，不會因為手停了卡在半空中
-  function emitPop() {
+  function emitPop(force) {
     const now = performance.now();
-    if (now - lastPop < 55) return;
+    if (!force && now - lastPop < 55) return;
     lastPop = now;
     const r = envFront.getBoundingClientRect();
     const cx = r.left + r.width / 2 - innerWidth / 2, cy = r.top + r.height * 0.04 - G.vh / 2;
@@ -542,7 +542,7 @@
       },
     });
   }
-  function closeEnvelope() {
+  function closeEnvelope(done) {
     state.pendingClose = false;
     state.closing = true;
     lenis.scrollTo(0, { immediate: true, force: true });
@@ -554,6 +554,7 @@
         state.closing = false;
         state.opened = false;
         if (state.needRebuild) { state.needRebuild = false; rebuild(); }
+        if (done) done();
         startBob();
       },
     });
@@ -562,7 +563,7 @@
   // 回到最上面 → 自動把信封闔上
   lenis.on('scroll', (l) => {
     ScrollTrigger.update();
-    if (!state.opened || state.closing || state.lb || state.rebuilding) return;
+    if (!state.opened || state.closing || state.lb || state.rebuilding || state.replaying) return;
     if (l.scroll > 4) state.pendingClose = false;
     else if (l.direction < 0) state.pendingClose = true;
   });
@@ -570,7 +571,7 @@
     if (!state.opened && !state.opening && !state.closing && window.scrollY > 0) toTop();
   }, { passive: true });
   gsap.ticker.add(() => {
-    if (state.pendingClose && !state.lb && !state.rebuilding && tl && tl.progress() < 0.002) closeEnvelope();
+    if (state.pendingClose && !state.lb && !state.rebuilding && !state.replaying && tl && tl.progress() < 0.002) closeEnvelope();
   });
 
   /* ───────── 放開手 → 滑到最近的關鍵畫面 ─────────
@@ -591,7 +592,7 @@
   addEventListener('wheel', () => { state.snapping = false; }, { passive: true });
 
   function snapCheck() {
-    if (!st || !state.opened || state.closing || state.lb || state.snapping || reduce) return;
+    if (!st || !state.opened || state.closing || state.lb || state.snapping || state.replaying || reduce) return;
     const dur = tl.duration(), now = st.progress * dur, dir = lenis.direction || 1;
     let target = null;
     // 剛開始抽信那段：往下捲過一點點就幫忙抽完；往回捲就不管（可能是要闔上信封）
@@ -681,7 +682,7 @@
 
   // iOS Safari 不一定理會 overflow:hidden；未拆封、闔上中、看照片時直接擋掉觸控捲動與回彈
   addEventListener('touchmove', (e) => {
-    if (!state.opened || state.closing || state.lb) e.preventDefault();
+    if (!state.opened || state.closing || state.lb || state.replaying) e.preventDefault();
   }, { passive: false });
 
   let touchY = null;
@@ -691,9 +692,58 @@
     if (lenis.scroll <= 1 && e.touches[0].clientY - touchY > 46) { state.pendingClose = true; touchY = null; }
   }, { passive: true });
 
-  replay.addEventListener('click', () => {
-    lenis.scrollTo(0, { duration: 3.2, easing: (t) => 1 - Math.pow(1 - t, 3) });
-  });
+  /* ───────── 把信收回去 ─────────
+     不再用「快速倒帶」：專門演一段溫柔的收信——
+     字淡掉、信封升回中間 → 照片一張張飛回信封 → 摺好的信紙落回去 → 蓋子闔上、封蠟黏回 */
+  function putBack() {
+    if (state.replaying || !state.opened || state.closing || state.lb) return;
+    state.replaying = true;
+    state.pendingClose = false;
+    state.snapping = false;
+    lenis.stop();
+    const n = photoEls.length;
+    const inPose = (i) => ({ x: (i - (n - 1) / 2) * G.envW * 0.05, rotation: (i - (n - 1) / 2) * 3, scale: G.sp });
+    const q = gsap.timeline();
+
+    // ① 結尾的字淡掉、背景暖色退回、信封升回畫面中間
+    q.to(['#ending', replay, hintMore], { autoAlpha: 0, duration: 0.5, ease: 'power1.out' }, 0)
+      .to(bgWarm, { opacity: 0, duration: 1.8, ease: 'sine.inOut' }, 0)
+      .to(ENV, { y: 0, scale: 1, rotation: 0, duration: 0.9, ease: 'power3.inOut' }, 0.1);
+
+    // ② 照片從最後一張開始，飛回信封口、再滑進去
+    [...photoEls].reverse().forEach((el, k) => {
+      const i = n - 1 - k, ts = 0.45 + k * 0.16;
+      q.to(el, { ...inPose(i), y: G.yRise, duration: 0.7, ease: 'power2.inOut' }, ts)
+        .set(el, { zIndex: 3 }, ts + 0.7)
+        .add(() => emitPop(true), ts + 0.68)
+        // 滑深一點，整張藏到信封前片後面（之後歸零時才不會看到照片突然消失）
+        .to(el, { y: G.yIn + G.envH * 0.28, duration: 0.4, ease: 'power2.in' }, ts + 0.7);
+    });
+    const tIn = 0.45 + (n - 1) * 0.16 + 1.05;
+
+    // ③ 在背景悄悄把捲動和時間軸歸零（信紙先藏起來，不會突然跳出來）
+    q.add(() => {
+      gsap.set(letter, { autoAlpha: 0 });
+      lenis.scrollTo(0, { immediate: true, force: true });
+      ScrollTrigger.update();
+      const scrub = st.getTween && st.getTween();
+      if (scrub) scrub.progress(1);
+      tl.progress(0);
+      gsap.set('#ending', { autoAlpha: 1 });   // 結尾區塊本身恢復，裡面的字由時間軸控制（現在是隱藏的）
+      gsap.set(hintScrollIn, { opacity: 0 });  // 收信過程中「往下滑」提示不要閃出來，闔好後再還原
+    }, tIn + 0.05);
+
+    // ④ 摺好的信紙從上面輕輕落回信封
+    q.fromTo(letter, { autoAlpha: 1, y: () => G.y0 - G.vh * 0.7, rotation: 6 },
+      { y: () => G.y0, rotation: 0, duration: 1.1, ease: 'power2.out', immediateRender: false }, tIn + 0.15);
+
+    // ⑤ 蓋子闔上、封蠟黏回去（closeEnvelope 會把狀態整個重設回未拆封）
+    q.add(() => {
+      state.replaying = false;
+      closeEnvelope(() => gsap.set(hintScrollIn, { opacity: 1 }));
+    }, tIn + 1.2);
+  }
+  replay.addEventListener('click', putBack);
 
   /* ───────── 照片燈箱 ───────── */
   const LB = {
