@@ -703,6 +703,7 @@
     lenis.stop();
     const n = photoEls.length;
     const inPose = (i) => ({ x: (i - (n - 1) / 2) * G.envW * 0.05, rotation: (i - (n - 1) / 2) * 3, scale: G.sp });
+    const yDive = G.envH * 0.07 + (G.ph * G.sp * 0.68) / 2;
     const q = gsap.timeline();
 
     // ① 結尾的字淡掉、背景暖色退回、信封升回畫面中間
@@ -716,8 +717,9 @@
       q.to(el, { ...inPose(i), y: G.yRise, duration: 0.7, ease: 'power2.inOut' }, ts)
         .set(el, { zIndex: 3 }, ts + 0.7)
         .add(() => emitPop(true), ts + 0.68)
-        // 滑深一點，整張藏到信封前片後面（之後歸零時才不會看到照片突然消失）
-        .to(el, { y: G.yIn + G.envH * 0.28, duration: 0.4, ease: 'power2.in' }, ts + 0.7);
+        // 滑進去時順便縮小一點，讓整張剛好藏在信封前片後面：
+        // 上緣低於前片的 V 口、下緣不超出信封底（之後歸零時也不會看到照片突然消失）
+        .to(el, { y: yDive, scale: G.sp * 0.68, duration: 0.4, ease: "power2.in" }, ts + 0.7);
     });
     const tIn = 0.45 + (n - 1) * 0.16 + 1.05;
 
