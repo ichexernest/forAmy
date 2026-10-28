@@ -54,8 +54,7 @@ body {
   user-select: none;
 }
 body.closed { touch-action: none; }
-body.closed #scene { cursor: grab; }
-body.dragging #scene { cursor: grabbing; }
+body.closed #scene { cursor: pointer; }
 
 button { font: inherit; color: inherit; }
 
@@ -607,31 +606,49 @@ button { font: inherit; color: inherit; }
   opacity: 0;
 }
 .hint-open:focus-visible { outline: 3px solid var(--rose); outline-offset: 3px; }
+/* 提示裡的小圖：一根手指點一下的感覺（圓點按下去、外圈漣漪擴散） */
 .gesture {
   position: relative;
-  width: 22px;
-  height: 30px;
-  border-radius: 11px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   background: rgba(232, 120, 143, .14);
-  overflow: hidden;
 }
-.gesture i {
+.gesture i,
+.gesture::after {
   position: absolute;
   left: 50%;
-  bottom: 4px;
+  top: 50%;
+  border-radius: 50%;
+}
+.gesture i {
   width: 10px;
   height: 10px;
-  margin-left: -5px;
-  border-radius: 50%;
+  margin: -5px 0 0 -5px;
   background: var(--rose);
-  animation: swipeUp 1.6s cubic-bezier(.55, 0, .25, 1) infinite;
+  animation: tapDot 1.8s ease-in-out infinite;
 }
-@keyframes swipeUp {
-  0% { transform: translateY(0); opacity: 0; }
-  15% { opacity: 1; }
-  70% { transform: translateY(-14px); opacity: 1; }
-  100% { transform: translateY(-16px); opacity: 0; }
+.gesture::after {
+  content: '';
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border: 2px solid var(--rose);
+  opacity: 0;
+  animation: tapRing 1.8s ease-out infinite;
 }
+@keyframes tapDot {
+  0%, 100% { transform: scale(1); }
+  18% { transform: scale(.62); }
+  34% { transform: scale(1.12); }
+  50% { transform: scale(1); }
+}
+@keyframes tapRing {
+  0%, 20% { transform: scale(.4); opacity: 0; }
+  24% { opacity: .7; }
+  70%, 100% { transform: scale(1.25); opacity: 0; }
+}
+
 
 .hint-scroll {
   position: absolute;

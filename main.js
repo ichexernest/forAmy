@@ -122,15 +122,34 @@
     $('#sealFx').appendChild(sp);
     return sp;
   });
-  // 每張照片冒出信封時噴出的小火花（跟封蠟彈開時同一種星光）
-  const POP_N = 6;
-  const popSparks = D.photos.map(() => Array.from({ length: POP_N }, (_, k) => {
+  // 照片冒出信封時噴的小火花（跟封蠟彈開時同一種星光），36 顆輪流重複使用
+  const popPool = Array.from({ length: 36 }, (_, k) => {
     const sp = document.createElement('i');
     sp.innerHTML = SPARK;
     sp.style.color = ['#fff2b8', '#ff9fb6', '#ffffff', '#ffc98a'][k % 4];
     $('#popFx').appendChild(sp);
+    gsap.set(sp, { scale: 0 });
     return sp;
-  }));
+  });
+  let popIdx = 0, lastPop = 0;
+  // 從信封口噴兩顆出去；每顆噴出來就自己飛完、淡掉，不會因為手停了卡在半空中
+  function emitPop() {
+    const now = performance.now();
+    if (now - lastPop < 55) return;
+    lastPop = now;
+    const r = envFront.getBoundingClientRect();
+    const cx = r.left + r.width / 2 - innerWidth / 2, cy = r.top + r.height * 0.04 - G.vh / 2;
+    for (let k = 0; k < 2; k++) {
+      const sp = popPool[popIdx++ % popPool.length];
+      gsap.killTweensOf(sp);
+      const side = Math.random() < 0.5 ? -1 : 1, deg = rand(12, 62);
+      const ang = side > 0 ? (-deg * Math.PI) / 180 : (-(180 - deg) * Math.PI) / 180;
+      const x0 = cx + rand(-r.width * 0.18, r.width * 0.18), dist = r.width * rand(0.22, 0.4);
+      gsap.fromTo(sp, { x: x0, y: cy, scale: 0, rotation: 0, opacity: 1 },
+        { x: x0 + Math.cos(ang) * dist, y: cy + Math.sin(ang) * dist, scale: rand(0.7, 1.2), rotation: rand(-120, 120), duration: 0.5, ease: 'power2.out' });
+      gsap.to(sp, { scale: 0, opacity: 0, duration: 0.3, delay: 0.38, ease: 'power1.in' });
+    }
+  }
   const trailHearts = Array.from({ length: 12 }, (_, i) => {
     const h = document.createElement('i');
     h.innerHTML = HEART;
@@ -431,19 +450,6 @@
     // G｜照片一張一張彈出來
     photoEls.forEach((el, i) => {
       const ti = t + i * 0.22, p = G.pos[i];
-      // 照片探出信封口的那一刻，往上噴一小簇星光
-      const x0 = (i - (n - 1) / 2) * G.envW * 0.05, y0 = -G.envH * 0.5;
-      popSparks[i].forEach((sp, k) => {
-        // 往信封口的左右兩側斜斜噴開，圍在照片旁邊，不會蓋在照片上
-        const side = k % 2 ? -1 : 1, spread = Math.floor(k / 2) / (POP_N / 2);
-        const deg = 12 + spread * 46 + rand(-6, 6);
-        const ang = side > 0 ? (-deg * Math.PI) / 180 : (-(180 - deg) * Math.PI) / 180;
-        const r = G.envW * rand(0.26, 0.42);
-        const tk = ti + 0.12 + k * 0.012;
-        tl.fromTo(sp, { x: x0, y: y0, scale: 0, rotation: 0 },
-          { x: x0 + Math.cos(ang) * r, y: y0 + Math.sin(ang) * r, scale: rand(0.7, 1.2), rotation: rand(-90, 90), duration: 0.32, ease: 'power2.out' }, tk)
-          .to(sp, { scale: 0, duration: 0.22, ease: 'power1.in' }, tk + 0.3);
-      });
       tl.to(el, { y: G.yRise, duration: 0.45, ease: 'power2.out' }, ti)
         .set(el, { zIndex: 10 + i }, ti + 0.45)
         .to(el, { x: p.x, y: p.y, rotation: p.r, scale: p.s, duration: 0.85, ease: 'back.out(1.3)' }, ti + 0.45);
@@ -475,6 +481,7 @@
     const kOut = 1.2, kCenter = 2.2, kEnd = tl.duration();
     state.snapSegs = [[kOut, kCenter], [kCenter, kRead], [kReadEnd, kEnvBack], [kEnvBack, tDone], [tDone, kEnd]];
     state.snapFirst = kOut;
+    state.popRange = [kEnvBack, tDone];
     scroller.style.height = tl.duration() * G.unit + G.vh + 'px';
 
     st = ScrollTrigger.create({
@@ -484,7 +491,10 @@
       // 動畫幾乎直接跟著捲動位置走（只留 0.2 秒緩衝吸收手機慣性的小抖動），不再延遲一整秒
       scrub: reduce ? true : 0.2,
       animation: tl,
-      onUpdate: () => {
+      onUpdate: (self) => {
+        // 照片從信封抽出來到就定位這段，只要有在捲（往哪邊都算）就噴火花
+        const tNow = self.progress * tl.duration();
+        if (state.popRange && tNow > state.popRange[0] && tNow < state.popRange[1]) emitPop();
         const done = tl.time() >= state.photosDone - 0.02;
         if (done !== state.photosFocusable) {
           state.photosFocusable = done;
@@ -500,6 +510,7 @@
     if (reduce) return;
     bob && bob.kill();
     bob = gsap.to(scene, { y: -7, rotation: 0.5, duration: 1.9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    startInvite();   // 待機（信封闔著）時封蠟心跳，邀請她點
   }
   function stopBob() {
     // 開場最後還在淡入的提示，如果她已經開始拆信就直接跑完，不然提示會在拆開後又跑出來
@@ -514,9 +525,11 @@
     if (state.opened || state.opening || state.closing) return;
     state.opening = true;
     stopBob();
+    stopInvite();
     const p = openTl.progress();
+    // 照時間軸原本設計好的節奏完整播一次（封蠟彈開 → 蓋子翻開 → 信紙探頭）
     gsap.to(openTl, {
-      progress: 1, duration: 0.5 + (1 - p) * 1.3, ease: 'power1.out', overwrite: true,
+      progress: 1, duration: openTl.duration() * (1 - p) * 1.05, ease: 'none', overwrite: true,
       onComplete: () => {
         state.opening = false;
         state.opened = true;
@@ -525,9 +538,6 @@
         lenis.start();
       },
     });
-  }
-  function cancelOpen() {
-    gsap.to(openTl, { progress: 0, duration: 0.6, ease: 'power2.out', overwrite: true, onComplete: startBob });
   }
   function closeEnvelope() {
     state.pendingClose = false;
@@ -608,49 +618,58 @@
     }
   });
 
-  /* ───────── 手勢 ───────── */
-  let drag = null;
+  /* ───────── 點一下封蠟打開 ─────────
+     不用滑動拉開：點一下（封蠟、信封、提示都可以）就完整播放打開的動畫。
+     如果她習慣性去滑，封蠟會晃一下告訴她「點我」 */
   const canGesture = () => state.ready && !state.opened && !state.opening && !state.closing && !state.lb;
+  const sealArt = () => seal.querySelector('svg');
+  let invite = null, lastNudge = 0;
+  function startInvite() {
+    if (reduce) return;
+    invite && invite.kill();
+    gsap.set(sealArt(), { transformOrigin: '50% 52%', scale: 1, rotation: 0 });
+    // 像心跳一樣「咚咚」兩下，停一下再來
+    invite = gsap.timeline({ repeat: -1, repeatDelay: 1.3, delay: 0.6 })
+      .to(sealArt(), { scale: 1.09, duration: 0.14, ease: 'power2.out' })
+      .to(sealArt(), { scale: 1, duration: 0.2, ease: 'power2.in' })
+      .to(sealArt(), { scale: 1.06, duration: 0.13, ease: 'power2.out' })
+      .to(sealArt(), { scale: 1, duration: 0.32, ease: 'power2.inOut' });
+  }
+  function stopInvite() {
+    invite && invite.kill();
+    invite = null;
+    gsap.to(sealArt(), { scale: 1, rotation: 0, duration: 0.2, overwrite: 'auto' });
+  }
+  function nudge() {
+    const now = performance.now();
+    if (!canGesture() || now - lastNudge < 700) return;
+    lastNudge = now;
+    gsap.fromTo(sealArt(), { rotation: 0 }, { keyframes: { rotation: [0, -12, 9, -6, 3, 0] }, duration: 0.55, ease: 'none', overwrite: 'auto' });
+    gsap.fromTo(hintOpen, { y: 0 }, { keyframes: { y: [0, -6, 0, -3, 0] }, duration: 0.5, ease: 'none' });
+  }
 
+  let press = null;
   addEventListener('pointerdown', (e) => {
     if (!canGesture() || e.button > 0) return;
-    if (e.target.closest('#hintOpen')) return;
-    drag = { y: e.clientY, x: e.clientX, p0: openTl.progress(), p: openTl.progress(), moved: false };
-    document.body.classList.add('dragging');
-    stopBob();
+    press = { x: e.clientX, y: e.clientY, at: performance.now() };
   });
-  addEventListener('pointermove', (e) => {
-    if (!drag) return;
-    const dy = drag.y - e.clientY;
-    if (Math.abs(dy) > 6 || Math.abs(e.clientX - drag.x) > 6) drag.moved = true;
-    drag.p = clamp(0, 1, drag.p0 + dy / (G.envH * 1.15));
-    gsap.to(openTl, { progress: drag.p, duration: 0.5, ease: 'power3.out', overwrite: true });
+  addEventListener('pointerup', (e) => {
+    if (!press) return;
+    const moved = Math.hypot(e.clientX - press.x, e.clientY - press.y), held = performance.now() - press.at;
+    press = null;
+    if (!canGesture()) return;
+    if (moved < 12 && held < 800) finishOpen();   // 點一下 → 打開
+    else nudge();                                 // 用滑的 → 晃一下提示要用點的
   });
-  const endDrag = () => {
-    if (!drag) return;
-    const d = drag;
-    drag = null;
-    document.body.classList.remove('dragging');
-    if (!d.moved || d.p > 0.3) finishOpen();
-    else cancelOpen();
-  };
-  addEventListener('pointerup', endDrag);
-  addEventListener('pointercancel', endDrag);
-  hintOpen.addEventListener('click', () => canGesture() && finishOpen());
+  addEventListener('pointercancel', () => { press = null; });
+  // 用鍵盤按「打開」提示也可以（滑鼠／手指點擊已經在上面處理）
+  hintOpen.addEventListener('click', (e) => { if (e.detail === 0 && canGesture()) finishOpen(); });
 
-  // 滑鼠滾輪也能拆信；已打開時在最上面往上滾就闔上
-  let wheelP = null, wheelTimer;
+  // 信封還沒拆時滾滾輪：不會打開，只晃一下提示；已打開時在最上面往上滾就闔上
   addEventListener('wheel', (e) => {
     if (state.lb) return;
     if (!state.opened) {
-      if (!canGesture()) return;
-      if (wheelP === null) { wheelP = openTl.progress(); stopBob(); }
-      wheelP = clamp(0, 1, wheelP + e.deltaY / 900);
-      gsap.to(openTl, { progress: wheelP, duration: 0.5, ease: 'power3.out', overwrite: true });
-      clearTimeout(wheelTimer);
-      const settle = () => { const p = wheelP; wheelP = null; p > 0.3 ? finishOpen() : cancelOpen(); };
-      if (wheelP >= 1) settle();
-      else wheelTimer = setTimeout(settle, 180);
+      if (Math.abs(e.deltaY) > 4) nudge();
       return;
     }
     if (!state.closing && lenis.scroll <= 1 && e.deltaY < -2) state.pendingClose = true;
