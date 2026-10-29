@@ -138,14 +138,15 @@
     const now = performance.now();
     if (!force && now - lastPop < 55) return;
     lastPop = now;
-    const r = envFront.getBoundingClientRect();
-    const cx = r.left + r.width / 2 - innerWidth / 2, cy = r.top + r.height * 0.04 - G.vh / 2;
+    // 信封口的位置直接用 GSAP 記著的數字算，不去量畫面（捲動中量畫面會逼瀏覽器重排一次）
+    const es = gsap.getProperty(envFront, 'scale'), w = G.envW * es;
+    const cx = gsap.getProperty(envFront, 'x'), cy = gsap.getProperty(envFront, 'y') - (G.envH * es) * 0.46;
     for (let k = 0; k < 2; k++) {
       const sp = popPool[popIdx++ % popPool.length];
       gsap.killTweensOf(sp);
       const side = Math.random() < 0.5 ? -1 : 1, deg = rand(12, 62);
       const ang = side > 0 ? (-deg * Math.PI) / 180 : (-(180 - deg) * Math.PI) / 180;
-      const x0 = cx + rand(-r.width * 0.18, r.width * 0.18), dist = r.width * rand(0.22, 0.4);
+      const x0 = cx + rand(-w * 0.18, w * 0.18), dist = w * rand(0.22, 0.4);
       gsap.fromTo(sp, { x: x0, y: cy, scale: 0, rotation: 0, opacity: 1 },
         { x: x0 + Math.cos(ang) * dist, y: cy + Math.sin(ang) * dist, scale: rand(0.7, 1.2), rotation: rand(-120, 120), duration: 0.5, ease: 'power2.out' });
       gsap.to(sp, { scale: 0, opacity: 0, duration: 0.3, delay: 0.38, ease: 'power1.in' });
@@ -493,8 +494,9 @@
       .fromTo(fin, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, tp)
       .to(ENV, { y: G.envAway, duration: d2 * 0.6, ease: 'power1.in' }, tp2);   // 露在下面的信封沉下去，不跟第三區擠
     // 第三區捲進來時，裡面的東西一個個輕輕浮上來
-    tl.fromTo(fin.children, { opacity: 0, y: 26, scale: 0.96 },
-      { opacity: 1, y: 0, scale: 1, duration: d2 * 0.45, stagger: d2 * 0.08, ease: 'power2.out' }, tp2 + d2 * 0.3);
+    // （只動位置和透明度：iPhone 遇到縮放會把整團雲＋模糊濾鏡每一格重畫，捲起來會卡）
+    tl.fromTo(fin.children, { opacity: 0, y: 26 },
+      { opacity: 1, y: 0, duration: d2 * 0.45, stagger: d2 * 0.08, ease: 'power2.out' }, tp2 + d2 * 0.3);
     // 按鈕四周的雲從兩側飄過來圍住按鈕；背景的雲跟著這一頁浮上來；最後才出現最底下的「把信收回去」
     nestEnter(tl, tp2 + d2 * 0.45, d2 * 0.5);
     tl.fromTo(cloudsEl, { autoAlpha: 0, y: 60 }, { autoAlpha: 1, y: 0, duration: d2 * 0.75, ease: 'power2.out' }, tp2 + d2 * 0.25)
@@ -706,10 +708,17 @@
     if (!state.closing && lenis.scroll <= 1 && e.deltaY < -2) state.pendingClose = true;
   }, { passive: true });
 
-  // iOS Safari 不一定理會 overflow:hidden；未拆封、闔上中、看照片時直接擋掉觸控捲動與回彈
-  addEventListener('touchmove', (e) => {
-    if (!state.opened || state.closing || state.lb || state.replaying) e.preventDefault();
-  }, { passive: false });
+  // iOS Safari 不一定理會 overflow:hidden；未拆封、闔上中、看照片時直接擋掉觸控捲動與回彈。
+  // 只在這些時候才掛上去：掛著「可能會擋」的監聽，每次滑動瀏覽器都得先等 JS 回覆，捲動會頓
+  const blockTouch = (e) => e.preventDefault();
+  let touchBlocked = false;
+  gsap.ticker.add(() => {
+    const lock = !state.opened || state.closing || state.lb || state.replaying;
+    if (lock === touchBlocked) return;
+    touchBlocked = lock;
+    if (lock) addEventListener('touchmove', blockTouch, { passive: false });
+    else removeEventListener('touchmove', blockTouch);
+  });
 
   let touchY = null;
   addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; }, { passive: true });
@@ -1107,9 +1116,9 @@
     fnDays.setAttribute('aria-label', `${TG.title || ''} ${day}${TG.days || ''} ${hours}${TG.hours || ''} ${mins}${TG.minutes || ''}`);
   }
   tickTogether(false);
-  // 對齊到每一秒的開頭再跳，秒數才準
+  // 對齊到每一秒的開頭再跳，秒數才準（第三區看不到時只換數字，不跑捲動動畫）
   setTimeout(function loop() {
-    tickTogether(true);
+    tickTogether(finLive === true);
     setTimeout(loop, 1000 - (Date.now() % 1000));
   }, 1000 - (Date.now() % 1000));
 
@@ -1175,7 +1184,17 @@
   // 按鈕四周的雲（後面三朵、前面兩朵擋住按鈕下面兩個角）＋背景遠處慢慢飄的雲
   const PINK = '#f2cbd8', LILAC = '#e2d3f0';
   const ftBack = $('#ftBack'), ftFront = $('#ftFront'), ftNest = $('#ftNest');
-  let cloudTweens = [], nestClouds = [];
+  let cloudTweens = [], nestClouds = [], feBob = null;
+  // 第三區還沒捲出來（或已經收回去）時，雲和信封的漂浮動畫先暫停，不在看不到的地方白算
+  let finLive = null;
+  const finEl = $('#finale');
+  gsap.ticker.add(() => {
+    const on = !!tl && gsap.getProperty(finEl, 'opacity') > 0;
+    if (on === finLive) return;
+    finLive = on;
+    cloudTweens.forEach((t) => t.paused(!on));
+    feBob && feBob.paused(!on);
+  });
   function initClouds() {
     cloudTweens.forEach((t) => t.kill());
     cloudTweens = [];
@@ -1206,6 +1225,7 @@
         drift.progress((i * 0.31 + 0.15) % 1);
         cloudTweens.push(drift);
       });
+    finLive = null;   // 新做的雲要重新套用暫停／播放
   }
   // 捲進最後一頁時：按鈕四周的雲從兩側飄過來把按鈕圍住（給捲動時間軸用）
   function nestEnter(tl, at, dur) {
@@ -1220,7 +1240,7 @@
     gsap.set(callBtn, { xPercent: -50, yPercent: -50 });
     const fe = $('#fe'), feFlap = $('#feFlap');
     gsap.set(feFlap, { transformPerspective: 700 });
-    if (!reduce) gsap.to(fe, { y: -7, rotation: 0.6, duration: 2.6, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    if (!reduce) feBob = gsap.to(fe, { y: -7, rotation: 0.6, duration: 2.6, ease: 'sine.inOut', yoyo: true, repeat: -1, paused: true });
     const callFx = $('#callFx');
     const hearts = Array.from({ length: 6 }, (_, k) => {
       const h = document.createElement('i');

@@ -125,6 +125,17 @@ button { font: inherit; color: inherit; }
 .env,
 .letter,
 .photo { will-change: transform; }
+/* 結尾標題、第三區、雲：跟著捲動上下移，固定成獨立圖層；
+   不然每次停在吸附點再滑，瀏覽器都要把整團雲（有模糊濾鏡）重畫一次，會頓一下 */
+.ending,
+.finale,
+.clouds,
+.cl { will-change: transform; }
+/* 帶發光的小火花、愛心：一邊縮放一邊飛，也各自一層，不用每一格重畫光暈 */
+.seal-fx i,
+.pop-fx i,
+.trail i,
+#introFx i { will-change: transform, opacity; }
 .env {
   position: absolute;
   left: 50%;
