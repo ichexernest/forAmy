@@ -1,6 +1,9 @@
 (() => {
   'use strict';
 
+  // 要先加到主畫面（index.html 判斷）：只留教學頁，音樂、照片都不用下載
+  if (window.NEED_HOME) return;
+
   const D = window.LOVE;
   gsap.registerPlugin(ScrollTrigger);
 
@@ -57,8 +60,6 @@
     (L.ps ? `<p class="pc-ps">${esc(L.ps)}</p>` : '');
 
   const setText = (sel, text) => { $(sel).textContent = text ?? ''; };
-  document.title = D.page.title;
-  document.querySelector('meta[name="apple-mobile-web-app-title"]').content = D.page.homeScreenName;
   setText('#hintOpenText', D.intro.openHint);
   setText('#hintScrollText', D.intro.scrollHint);
   setText('#coverTo', D.cover.to);

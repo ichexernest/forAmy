@@ -39,6 +39,24 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <script src="content.js"></script>
   <script>
+    // 「加入主畫面」時 iPhone 會讀這兩個，所以教學頁也要先設好
+    document.title = window.LOVE.page.title;
+    document.querySelector('meta[name="apple-mobile-web-app-title"]').content = window.LOVE.page.homeScreenName;
+
+    // iPhone／iPad 不是從主畫面打開 → 先顯示教學頁，主畫面打開才走原本的流程。
+    // 電腦和 Android 不受影響；開發用：網址加 ?debug&forceguide 可以在電腦上看教學頁
+    (function () {
+      var ios = /iPhone|iPod|iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      var home = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+      var forced = location.search.includes('debug') && location.search.includes('forceguide');
+      var skipped = /[?&]skipHome=1/.test(location.search);   // 教學頁按了「先直接看」
+      if (!skipped && ((ios && !home) || forced)) {
+        window.NEED_HOME = true;
+        document.documentElement.classList.add('need-home');
+      }
+    })();
+  </script>
+  <script>
     // 字型只下載網站上真的會出現的字（Google 的 text= 參數）：
     // 中文字型不用再拆成幾十個分片一個個抓，每種字型只要一個小檔案
     (function () {
@@ -270,6 +288,47 @@
       <span class="gate-btn" id="gateBtn"></span>
     </div>
   </div>
+
+  <!-- 用 Safari 開時擋在最前面：教對方把網站加到主畫面（文字在 content.js） -->
+  <div id="homeGuide">
+    <div class="hg-in">
+      <span class="hg-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.6c-.3 0-.6-.1-.8-.3C6.4 16.2 3 13.2 3 9.4 3 6.9 5 5 7.4 5c1.8 0 3.2 1 4.6 2.6C13.4 6 14.8 5 16.6 5 19 5 21 6.9 21 9.4c0 3.8-3.4 6.8-8.2 10.9-.2.2-.5.3-.8.3z"/></svg></span>
+      <h1 class="hg-title" id="hgTitle"></h1>
+      <p class="hg-sub" id="hgSub"></p>
+      <ol class="hg-steps" id="hgSteps"></ol>
+      <div class="hg-app">
+        <img src="apple-touch-icon.png" alt="" width="64" height="64">
+        <span id="hgName"></span>
+      </div>
+      <button class="hg-skip" id="hgSkip" type="button"></button>
+    </div>
+  </div>
+  <script>
+    // 不用等 GSAP 下載，教學頁一出現就有字
+    (function () {
+      if (!window.NEED_HOME) return;
+      var H = window.LOVE.homeGuide, list = document.getElementById('hgSteps');
+      document.getElementById('hgTitle').textContent = H.title;
+      document.getElementById('hgSub').textContent = H.subtitle;
+      document.getElementById('hgName').textContent = window.LOVE.page.homeScreenName;
+      var SHARE = '<svg viewBox="0 0 24 24" aria-label="分享"><path d="M12 15V3.5M8 7.5l4-4 4 4M8.5 10.5h-2A1.5 1.5 0 0 0 5 12v7.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V12a1.5 1.5 0 0 0-1.5-1.5h-2"/></svg>';
+      H.steps.forEach(function (step) {
+        var li = document.createElement('li');
+        step.split('{share}').forEach(function (part, i) {
+          if (i) li.insertAdjacentHTML('beforeend', SHARE);
+          li.appendChild(document.createTextNode(part));
+        });
+        list.appendChild(li);
+      });
+      // 逃生通道：加不了主畫面時，重新載入一次就走原本的流程
+      var skip = document.getElementById('hgSkip');
+      skip.textContent = H.skip;
+      skip.addEventListener('click', function () {
+        var sep = location.search ? '&' : '?';
+        location.replace(location.pathname + location.search + sep + 'skipHome=1' + location.hash);
+      });
+    })();
+  </script>
 
   <!-- 照片燈箱 -->
   <div id="lb" aria-hidden="true" role="dialog" aria-modal="true" aria-label="照片">
